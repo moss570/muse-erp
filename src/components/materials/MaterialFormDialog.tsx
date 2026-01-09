@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star } from 'lucide-react';
 import { CreateUnitDialog } from './CreateUnitDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -42,6 +42,7 @@ type Material = Tables<'materials'>;
 type Unit = Tables<'units_of_measure'>;
 type DropdownOption = Tables<'dropdown_options'>;
 type ListedMaterial = Tables<'listed_material_names'>;
+type Supplier = Tables<'suppliers'>;
 
 // Category options with their code prefixes
 const MATERIAL_CATEGORIES = [
@@ -112,6 +113,19 @@ interface PurchaseUnit {
   cost_per_unit?: number;
 }
 
+interface MaterialSupplier {
+  id?: string;
+  supplier_id: string;
+  is_primary: boolean;
+  supplier_item_number?: string;
+  cost_per_unit?: number;
+  unit_id?: string;
+  lead_time_days?: number;
+  min_order_quantity?: number;
+  notes?: string;
+  is_active: boolean;
+}
+
 interface MaterialFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -121,8 +135,10 @@ interface MaterialFormDialogProps {
 export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFormDialogProps) {
   const [activeTab, setActiveTab] = useState('basic');
   const [purchaseUnits, setPurchaseUnits] = useState<PurchaseUnit[]>([]);
+  const [materialSuppliers, setMaterialSuppliers] = useState<MaterialSupplier[]>([]);
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
-  const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | number | null>(null);
+  const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
+  const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -202,6 +218,20 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     },
   });
 
+  // Fetch suppliers
+  const { data: suppliers } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as Supplier[];
+    },
+  });
+
   // Fetch existing purchase units for editing
   const { data: existingPurchaseUnits } = useQuery({
     queryKey: ['material-purchase-units', material?.id],
@@ -210,6 +240,22 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       const { data, error } = await supabase
         .from('material_purchase_units')
         .select('*, units_of_measure:unit_id(*)')
+        .eq('material_id', material.id)
+        .eq('is_active', true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!material?.id,
+  });
+
+  // Fetch existing material suppliers for editing
+  const { data: existingMaterialSuppliers } = useQuery({
+    queryKey: ['material-suppliers', material?.id],
+    queryFn: async () => {
+      if (!material?.id) return [];
+      const { data, error } = await supabase
+        .from('material_suppliers')
+        .select('*')
         .eq('material_id', material.id)
         .eq('is_active', true);
       if (error) throw error;
@@ -265,6 +311,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         category: '',
       } as MaterialFormData);
       setPurchaseUnits([]);
+      setMaterialSuppliers([]);
     }
     setActiveTab('basic');
   }, [material, form, open]);
@@ -283,6 +330,24 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       })));
     }
   }, [existingPurchaseUnits]);
+
+  // Load existing material suppliers
+  useEffect(() => {
+    if (existingMaterialSuppliers) {
+      setMaterialSuppliers(existingMaterialSuppliers.map(ms => ({
+        id: ms.id,
+        supplier_id: ms.supplier_id,
+        is_primary: ms.is_primary ?? false,
+        supplier_item_number: ms.supplier_item_number || undefined,
+        cost_per_unit: ms.cost_per_unit ? Number(ms.cost_per_unit) : undefined,
+        unit_id: ms.unit_id || undefined,
+        lead_time_days: ms.lead_time_days ?? undefined,
+        min_order_quantity: ms.min_order_quantity ? Number(ms.min_order_quantity) : undefined,
+        notes: ms.notes || undefined,
+        is_active: ms.is_active ?? true,
+      })));
+    }
+  }, [existingMaterialSuppliers]);
 
   const createMutation = useMutation({
     mutationFn: async (data: MaterialFormData) => {
@@ -336,6 +401,25 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             cost_per_unit: pu.cost_per_unit ?? null,
           })));
         if (puError) throw puError;
+      }
+      
+      // Insert material suppliers
+      if (materialSuppliers.length > 0 && newMaterial) {
+        const { error: msError } = await supabase
+          .from('material_suppliers')
+          .insert(materialSuppliers.map(ms => ({
+            material_id: newMaterial.id,
+            supplier_id: ms.supplier_id,
+            is_primary: ms.is_primary,
+            supplier_item_number: ms.supplier_item_number || null,
+            cost_per_unit: ms.cost_per_unit ?? null,
+            unit_id: ms.unit_id || null,
+            lead_time_days: ms.lead_time_days ?? null,
+            min_order_quantity: ms.min_order_quantity ?? null,
+            notes: ms.notes || null,
+            is_active: ms.is_active,
+          })));
+        if (msError) throw msError;
       }
       
       return newMaterial;
@@ -420,10 +504,49 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           });
         }
       }
+      
+      // Update material suppliers - delete removed, insert new, update existing
+      const existingSupplierIds = existingMaterialSuppliers?.map(ms => ms.id) || [];
+      const currentSupplierIds = materialSuppliers.filter(ms => ms.id).map(ms => ms.id!);
+      const suppliersToDelete = existingSupplierIds.filter(id => !currentSupplierIds.includes(id));
+      
+      if (suppliersToDelete.length > 0) {
+        await supabase.from('material_suppliers').delete().in('id', suppliersToDelete);
+      }
+      
+      for (const ms of materialSuppliers) {
+        if (ms.id) {
+          await supabase.from('material_suppliers').update({
+            supplier_id: ms.supplier_id,
+            is_primary: ms.is_primary,
+            supplier_item_number: ms.supplier_item_number || null,
+            cost_per_unit: ms.cost_per_unit ?? null,
+            unit_id: ms.unit_id || null,
+            lead_time_days: ms.lead_time_days ?? null,
+            min_order_quantity: ms.min_order_quantity ?? null,
+            notes: ms.notes || null,
+            is_active: ms.is_active,
+          }).eq('id', ms.id);
+        } else {
+          await supabase.from('material_suppliers').insert({
+            material_id: material.id,
+            supplier_id: ms.supplier_id,
+            is_primary: ms.is_primary,
+            supplier_item_number: ms.supplier_item_number || null,
+            cost_per_unit: ms.cost_per_unit ?? null,
+            unit_id: ms.unit_id || null,
+            lead_time_days: ms.lead_time_days ?? null,
+            min_order_quantity: ms.min_order_quantity ?? null,
+            notes: ms.notes || null,
+            is_active: ms.is_active,
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       queryClient.invalidateQueries({ queryKey: ['material-purchase-units'] });
+      queryClient.invalidateQueries({ queryKey: ['material-suppliers'] });
       toast({ title: 'Material updated successfully' });
       onOpenChange(false);
     },
@@ -458,6 +581,40 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     ));
   };
 
+  // Material Supplier helper functions
+  const addMaterialSupplier = () => {
+    // When adding first supplier, make it primary
+    const isPrimary = materialSuppliers.length === 0;
+    setMaterialSuppliers([...materialSuppliers, { 
+      supplier_id: '', 
+      is_primary: isPrimary, 
+      is_active: true 
+    }]);
+  };
+
+  const removeMaterialSupplier = (index: number) => {
+    const removed = materialSuppliers[index];
+    const updated = materialSuppliers.filter((_, i) => i !== index);
+    // If we removed the primary supplier and there are others, make the first one primary
+    if (removed.is_primary && updated.length > 0) {
+      updated[0].is_primary = true;
+    }
+    setMaterialSuppliers(updated);
+  };
+
+  const updateMaterialSupplier = (index: number, field: keyof MaterialSupplier, value: string | number | boolean | undefined) => {
+    setMaterialSuppliers(materialSuppliers.map((ms, i) => {
+      if (i !== index) {
+        // If setting a new primary, unset others
+        if (field === 'is_primary' && value === true) {
+          return { ...ms, is_primary: false };
+        }
+        return ms;
+      }
+      return { ...ms, [field]: value };
+    }));
+  };
+
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -470,11 +627,12 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="specifications">Specifications</TabsTrigger>
                 <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
                 <TabsTrigger value="purchasing">Purchasing</TabsTrigger>
+                <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -1419,6 +1577,197 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   />
                 </div>
               </TabsContent>
+
+              {/* Suppliers Tab */}
+              <TabsContent value="suppliers" className="space-y-6 mt-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Approved Suppliers</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Link approved suppliers with pricing and lead time information
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={addMaterialSupplier}>
+                      <Plus className="h-4 w-4 mr-1" /> Add Supplier
+                    </Button>
+                  </div>
+
+                  {materialSuppliers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
+                      <p>No suppliers linked to this material.</p>
+                      <p className="text-xs mt-1">Click "Add Supplier" to link approved suppliers.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {materialSuppliers.map((ms, index) => {
+                        const selectedSupplier = suppliers?.find(s => s.id === ms.supplier_id);
+                        const selectedUnit = units?.find(u => u.id === ms.unit_id);
+                        
+                        return (
+                          <div key={index} className={`p-4 border rounded-md bg-card space-y-4 ${ms.is_primary ? 'border-primary/50 bg-primary/5' : ''}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 space-y-4">
+                                {/* Header Row */}
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1">
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Supplier *
+                                    </label>
+                                    <Select
+                                      value={ms.supplier_id}
+                                      onValueChange={(value) => updateMaterialSupplier(index, 'supplier_id', value)}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select supplier" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {suppliers?.map((supplier) => (
+                                          <SelectItem key={supplier.id} value={supplier.id}>
+                                            {supplier.name} ({supplier.code})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-5">
+                                    <Button
+                                      type="button"
+                                      variant={ms.is_primary ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => updateMaterialSupplier(index, 'is_primary', true)}
+                                      className="gap-1"
+                                    >
+                                      <Star className={`h-3 w-3 ${ms.is_primary ? 'fill-current' : ''}`} />
+                                      {ms.is_primary ? 'Primary' : 'Set Primary'}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive"
+                                      onClick={() => removeMaterialSupplier(index)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Pricing Row */}
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Supplier Item Number
+                                    </label>
+                                    <Input
+                                      value={ms.supplier_item_number || ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'supplier_item_number', e.target.value)}
+                                      placeholder="SUP-12345"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Cost Per Unit ($)
+                                    </label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={ms.cost_per_unit ?? ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'cost_per_unit', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                      placeholder="0.00"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Pricing Unit
+                                    </label>
+                                    <div className="flex gap-1">
+                                      <Select
+                                        value={ms.unit_id || '__none__'}
+                                        onValueChange={(value) => updateMaterialSupplier(index, 'unit_id', value === '__none__' ? undefined : value)}
+                                      >
+                                        <SelectTrigger className="flex-1">
+                                          <SelectValue placeholder="Select unit" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="__none__">Use Base Unit</SelectItem>
+                                          {units?.map((unit) => (
+                                            <SelectItem key={unit.id} value={unit.id}>
+                                              {unit.name} ({unit.code})
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        className="shrink-0"
+                                        onClick={() => {
+                                          setPendingUnitField('supplier');
+                                          setPendingSupplierIndex(index);
+                                          setCreateUnitOpen(true);
+                                        }}
+                                        title="Create custom unit"
+                                      >
+                                        <PlusCircle className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Lead Time & MOQ Row */}
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Lead Time (Days)
+                                    </label>
+                                    <Input
+                                      type="number"
+                                      value={ms.lead_time_days ?? ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'lead_time_days', e.target.value ? parseInt(e.target.value) : undefined)}
+                                      placeholder="7"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Min Order Qty
+                                    </label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={ms.min_order_quantity ?? ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'min_order_quantity', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                      placeholder="1"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Notes
+                                    </label>
+                                    <Input
+                                      value={ms.notes || ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'notes', e.target.value)}
+                                      placeholder="Special instructions..."
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            {selectedSupplier && (
+                              <p className="text-xs text-muted-foreground">
+                                {selectedSupplier.contact_name && <span>Contact: {selectedSupplier.contact_name}</span>}
+                                {selectedSupplier.email && <span className="ml-3">Email: {selectedSupplier.email}</span>}
+                                {selectedSupplier.phone && <span className="ml-3">Phone: {selectedSupplier.phone}</span>}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
@@ -1440,6 +1789,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
               form.setValue('base_unit_id', unitId);
             } else if (pendingUnitField === 'usage_unit_id') {
               form.setValue('usage_unit_id', unitId);
+            } else if (pendingUnitField === 'supplier' && pendingSupplierIndex !== null) {
+              updateMaterialSupplier(pendingSupplierIndex, 'unit_id', unitId);
+              setPendingSupplierIndex(null);
             } else if (typeof pendingUnitField === 'number') {
               updatePurchaseUnit(pendingUnitField, 'unit_id', unitId);
             }

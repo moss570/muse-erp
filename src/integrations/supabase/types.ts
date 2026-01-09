@@ -468,6 +468,76 @@ export type Database = {
           },
         ]
       }
+      material_suppliers: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          lead_time_days: number | null
+          material_id: string
+          min_order_quantity: number | null
+          notes: string | null
+          supplier_id: string
+          supplier_item_number: string | null
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          lead_time_days?: number | null
+          material_id: string
+          min_order_quantity?: number | null
+          notes?: string | null
+          supplier_id: string
+          supplier_item_number?: string | null
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          lead_time_days?: number | null
+          material_id?: string
+          min_order_quantity?: number | null
+          notes?: string | null
+          supplier_id?: string
+          supplier_item_number?: string | null
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_suppliers_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_suppliers_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           allergens: string[] | null
