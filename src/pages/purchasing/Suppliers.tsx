@@ -60,13 +60,9 @@ import { DataTablePagination } from '@/components/ui/data-table/DataTablePaginat
 import type { Tables } from '@/integrations/supabase/types';
 
 const SUPPLIER_TYPES = [
-  { value: 'ingredient', label: 'Ingredient' },
-  { value: 'packaging', label: 'Packaging' },
-  { value: 'equipment', label: 'Equipment' },
-  { value: 'services', label: 'Services' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'chemicals', label: 'Chemicals' },
-  { value: 'other', label: 'Other' },
+  { value: 'manufacturer', label: 'Manufacturer Only' },
+  { value: 'manufacturer_distributor', label: 'Manufacturer & Distributor' },
+  { value: 'distributor', label: 'Distributor Only' },
 ] as const;
 
 const APPROVAL_STATUSES = [
@@ -109,7 +105,7 @@ const PAYMENT_TERMS = [
 const supplierSchema = z.object({
   code: z.string().min(1, 'Code is required'),
   name: z.string().min(1, 'Name is required'),
-  supplier_type: z.string().default('ingredient'),
+  supplier_type: z.string().default('manufacturer'),
   contact_name: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional(),
@@ -186,7 +182,7 @@ export default function Suppliers() {
     defaultValues: {
       code: '',
       name: '',
-      supplier_type: 'ingredient',
+      supplier_type: 'manufacturer',
       contact_name: '',
       email: '',
       phone: '',
