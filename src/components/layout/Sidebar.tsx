@@ -127,6 +127,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Locations', href: '/settings/locations' },
       { title: 'Machines', href: '/settings/machines' },
+      { title: 'Document Requirements', href: '/settings/document-requirements' },
     ],
   },
 ];
