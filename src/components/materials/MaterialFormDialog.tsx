@@ -551,6 +551,35 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="manufacturer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Manufacturer</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Manufacturer name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="item_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Manufacturer Item Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Item/Part number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="listed_material_id"
@@ -1042,41 +1071,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
               {/* Food Safety (VACCP) Tab */}
               <TabsContent value="food-safety" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="country_of_origin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country of Origin</FormLabel>
-                        <FormControl>
-                          <Input placeholder="USA" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="manufacturer"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Manufacturer</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Manufacturer name" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 <FormField
                   control={form.control}
-                  name="item_number"
+                  name="country_of_origin"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Manufacturer Item Number</FormLabel>
+                    <FormItem className="max-w-xs">
+                      <FormLabel>Country of Origin</FormLabel>
                       <FormControl>
-                        <Input placeholder="MFR-12345" {...field} />
+                        <Input placeholder="USA" {...field} />
                       </FormControl>
                     </FormItem>
                   )}
