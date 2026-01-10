@@ -325,9 +325,15 @@ export function LabelDesigner({
             </span>
             {selectedElement && (
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setPropertiesOpen(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPropertiesOpen(true);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
               >
                 <Settings className="h-4 w-4 mr-1" />
                 Properties
