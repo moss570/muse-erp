@@ -600,23 +600,12 @@ export default function MaterialInventory() {
                             </TableCell>
                             <TableCell className="text-right">
                               {group.usageUnit && group.usageUnitConversion ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className={`cursor-help font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
-                                        {Number(group.totalOnHand).toLocaleString()}
-                                        <span className="text-muted-foreground ml-1 text-xs font-normal">
-                                          {group.baseUnit?.code}
-                                        </span>
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>
-                                        {(group.totalOnHand * group.usageUnitConversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {group.usageUnit.code}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
+                                  {(group.totalOnHand * group.usageUnitConversion).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                  <span className="text-muted-foreground ml-1 text-xs font-normal">
+                                    {group.usageUnit.code}
+                                  </span>
+                                </span>
                               ) : (
                                 <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
                                   {Number(group.totalOnHand).toLocaleString()}
