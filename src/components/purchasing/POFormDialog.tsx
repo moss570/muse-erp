@@ -638,8 +638,8 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                                 <SelectValue placeholder="Select material" />
                               </SelectTrigger>
                               <SelectContent>
-                                {allMaterials?.map((m) => (
-                                  <SelectItem key={m.id} value={m.id}>
+                                {availableMaterials?.map((m) => (
+                                  <SelectItem key={m.id} value={m.id!}>
                                     {m.name} ({m.code})
                                   </SelectItem>
                                 ))}
