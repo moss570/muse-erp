@@ -693,10 +693,32 @@ export default function MaterialInventory() {
                                   </TableCell>
                                   <TableCell></TableCell>
                                   <TableCell className="text-right text-sm">
-                                    {Number(lot.quantity_in_base_unit).toLocaleString()}
-                                    <span className="text-muted-foreground ml-1 text-xs">
-                                      {lot.unit?.code}
-                                    </span>
+                                    {lot.material?.usage_unit && lot.material?.usage_unit_conversion ? (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="cursor-help">
+                                              {Number(lot.quantity_in_base_unit).toLocaleString()}
+                                              <span className="text-muted-foreground ml-1 text-xs">
+                                                {lot.unit?.code}
+                                              </span>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>
+                                              {(lot.quantity_in_base_unit * lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {lot.material.usage_unit.code}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    ) : (
+                                      <>
+                                        {Number(lot.quantity_in_base_unit).toLocaleString()}
+                                        <span className="text-muted-foreground ml-1 text-xs">
+                                          {lot.unit?.code}
+                                        </span>
+                                      </>
+                                    )}
                                   </TableCell>
                                   <TableCell></TableCell>
                                   <TableCell className="text-center">
