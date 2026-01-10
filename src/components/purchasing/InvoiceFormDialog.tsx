@@ -180,7 +180,8 @@ export function InvoiceFormDialog({
   };
 
   const subtotal = calculateSubtotal();
-  const tax = form.watch('tax_amount') || 0;
+  const taxValue = form.watch('tax_amount');
+  const tax = typeof taxValue === 'number' ? taxValue : (parseFloat(String(taxValue)) || 0);
   const total = subtotal + tax;
 
   return (
