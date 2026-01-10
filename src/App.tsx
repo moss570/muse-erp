@@ -25,6 +25,7 @@ import ListedMaterialNames from "./pages/settings/ListedMaterialNames";
 import UserManagement from "./pages/settings/UserManagement";
 import ImportExport from "./pages/settings/ImportExport";
 import RolePermissions from "./pages/settings/RolePermissions";
+import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/settings/users" element={<AppLayout><UserManagement /></AppLayout>} />
             <Route path="/settings/permissions" element={<AppLayout><RolePermissions /></AppLayout>} />
             <Route path="/settings/import-export" element={<AppLayout><ImportExport /></AppLayout>} />
+            <Route path="/settings/templates" element={<AppLayout><DocumentTemplatesPage /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

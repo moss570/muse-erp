@@ -20,6 +20,7 @@ import {
   Tags,
   Upload,
   Shield,
+  FileStack,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -108,6 +109,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Configure required documents for suppliers and materials',
         href: '/settings/document-requirements',
         icon: FileText,
+        status: 'active',
+      },
+      {
+        title: 'Document & Email Templates',
+        description: 'Manage printable documents and email templates with merge fields',
+        href: '/settings/templates',
+        icon: FileStack,
         status: 'active',
       },
       {
