@@ -306,6 +306,78 @@ export type Database = {
         }
         Relationships: []
       }
+      document_templates: {
+        Row: {
+          bcc_addresses: string[] | null
+          category: Database["public"]["Enums"]["template_category"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_file_path: string | null
+          document_file_url: string | null
+          document_html: string | null
+          email_file_path: string | null
+          email_file_url: string | null
+          email_html: string | null
+          email_subject: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          send_to_all_contacts: boolean | null
+          send_to_primary_contact: boolean | null
+          sort_order: number | null
+          template_type: Database["public"]["Enums"]["template_type"]
+          updated_at: string
+        }
+        Insert: {
+          bcc_addresses?: string[] | null
+          category: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_file_path?: string | null
+          document_file_url?: string | null
+          document_html?: string | null
+          email_file_path?: string | null
+          email_file_url?: string | null
+          email_html?: string | null
+          email_subject?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          send_to_all_contacts?: boolean | null
+          send_to_primary_contact?: boolean | null
+          sort_order?: number | null
+          template_type?: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+        }
+        Update: {
+          bcc_addresses?: string[] | null
+          category?: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_file_path?: string | null
+          document_file_url?: string | null
+          document_html?: string | null
+          email_file_path?: string | null
+          email_file_url?: string | null
+          email_html?: string | null
+          email_subject?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          send_to_all_contacts?: boolean | null
+          send_to_primary_contact?: boolean | null
+          sort_order?: number | null
+          template_type?: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dropdown_options: {
         Row: {
           created_at: string
@@ -2583,6 +2655,42 @@ export type Database = {
         }
         Relationships: []
       }
+      template_merge_fields: {
+        Row: {
+          category: Database["public"]["Enums"]["template_category"]
+          created_at: string
+          description: string | null
+          field_key: string
+          field_label: string
+          id: string
+          is_active: boolean | null
+          sample_value: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          description?: string | null
+          field_key: string
+          field_label: string
+          id?: string
+          is_active?: boolean | null
+          sample_value?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          description?: string | null
+          field_key?: string
+          field_label?: string
+          id?: string
+          is_active?: boolean | null
+          sample_value?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       unit_conversions: {
         Row: {
           conversion_factor: number
@@ -2758,6 +2866,14 @@ export type Database = {
         | "admin"
         | "maintenance"
         | "hr"
+      template_category:
+        | "purchase"
+        | "sale"
+        | "inventory"
+        | "production"
+        | "crm"
+        | "financial"
+      template_type: "document" | "email"
       user_status: "active" | "inactive" | "pending"
     }
     CompositeTypes: {
@@ -2897,6 +3013,15 @@ export const Constants = {
         "maintenance",
         "hr",
       ],
+      template_category: [
+        "purchase",
+        "sale",
+        "inventory",
+        "production",
+        "crm",
+        "financial",
+      ],
+      template_type: ["document", "email"],
       user_status: ["active", "inactive", "pending"],
     },
   },
