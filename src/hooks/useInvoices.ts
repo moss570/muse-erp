@@ -1,0 +1,389 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface Invoice {
+  id: string;
+  purchase_order_id: string;
+  supplier_id: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string | null;
+  subtotal: number;
+  tax_amount: number | null;
+  total_amount: number;
+  payment_status: string;
+  payment_date: string | null;
+  payment_reference: string | null;
+  amount_paid: number | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceLineItem {
+  id: string;
+  invoice_id: string;
+  po_item_id: string | null;
+  receiving_item_id: string | null;
+  material_id: string | null;
+  description: string;
+  quantity: number;
+  unit_cost: number;
+  line_total: number | null;
+}
+
+export interface AdditionalCost {
+  id: string;
+  invoice_id: string;
+  cost_type: string;
+  description: string | null;
+  amount: number;
+  allocation_method: string;
+  allocated_to_item_id: string | null;
+  xero_account_code: string | null;
+}
+
+export interface CreateInvoiceInput {
+  purchase_order_id: string;
+  supplier_id: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date?: string;
+  tax_amount?: number;
+  notes?: string;
+  line_items: {
+    po_item_id?: string;
+    receiving_item_id?: string;
+    material_id?: string;
+    description: string;
+    quantity: number;
+    unit_cost: number;
+  }[];
+}
+
+export interface CreateAdditionalCostInput {
+  invoice_id: string;
+  cost_type: string;
+  description?: string;
+  amount: number;
+  allocation_method: string;
+  allocated_to_item_id?: string;
+  xero_account_code?: string;
+}
+
+// Fetch invoices for a PO
+export function usePOInvoices(poId?: string) {
+  return useQuery({
+    queryKey: ['po-invoices', poId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_order_invoices')
+        .select(`
+          *,
+          supplier:suppliers(id, name, code),
+          created_by_profile:profiles!purchase_order_invoices_created_by_fkey(first_name, last_name)
+        `)
+        .eq('purchase_order_id', poId)
+        .order('invoice_date', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!poId,
+  });
+}
+
+// Fetch single invoice with line items
+export function useInvoice(id?: string) {
+  return useQuery({
+    queryKey: ['invoice', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_order_invoices')
+        .select(`
+          *,
+          supplier:suppliers(id, name, code),
+          purchase_order:purchase_orders(id, po_number),
+          created_by_profile:profiles!purchase_order_invoices_created_by_fkey(first_name, last_name)
+        `)
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+}
+
+// Fetch invoice line items
+export function useInvoiceLineItems(invoiceId?: string) {
+  return useQuery({
+    queryKey: ['invoice-line-items', invoiceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invoice_line_items')
+        .select(`
+          *,
+          material:materials(id, name, code),
+          po_item:purchase_order_items(id, quantity_ordered, unit_cost),
+          receiving_item:po_receiving_items(id, internal_lot_number, quantity_received)
+        `)
+        .eq('invoice_id', invoiceId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!invoiceId,
+  });
+}
+
+// Fetch additional costs
+export function useAdditionalCosts(invoiceId?: string) {
+  return useQuery({
+    queryKey: ['additional-costs', invoiceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invoice_additional_costs')
+        .select('*')
+        .eq('invoice_id', invoiceId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!invoiceId,
+  });
+}
+
+// Fetch landed cost allocations
+export function useLandedCostAllocations(invoiceId?: string) {
+  return useQuery({
+    queryKey: ['landed-cost-allocations', invoiceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('landed_cost_allocations')
+        .select(`
+          *,
+          receiving_lot:receiving_lots(
+            id, 
+            internal_lot_number, 
+            material:materials(name, code),
+            quantity_in_base_unit
+          )
+        `)
+        .eq('invoice_id', invoiceId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!invoiceId,
+  });
+}
+
+// Create invoice with line items
+export function useCreateInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateInvoiceInput) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Calculate subtotal from line items
+      const subtotal = input.line_items.reduce(
+        (sum, item) => sum + item.quantity * item.unit_cost,
+        0
+      );
+      const totalAmount = subtotal + (input.tax_amount || 0);
+
+      // Create invoice
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('purchase_order_invoices')
+        .insert({
+          purchase_order_id: input.purchase_order_id,
+          supplier_id: input.supplier_id,
+          invoice_number: input.invoice_number,
+          invoice_date: input.invoice_date,
+          due_date: input.due_date,
+          subtotal,
+          tax_amount: input.tax_amount,
+          total_amount: totalAmount,
+          notes: input.notes,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      // Create line items
+      if (input.line_items.length > 0) {
+        const lineItems = input.line_items.map((item) => ({
+          invoice_id: invoice.id,
+          po_item_id: item.po_item_id || null,
+          receiving_item_id: item.receiving_item_id || null,
+          material_id: item.material_id || null,
+          description: item.description,
+          quantity: item.quantity,
+          unit_cost: item.unit_cost,
+          line_total: item.quantity * item.unit_cost,
+        }));
+
+        const { error: lineError } = await supabase
+          .from('invoice_line_items')
+          .insert(lineItems);
+
+        if (lineError) throw lineError;
+      }
+
+      return invoice;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['po-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', data.id] });
+      toast.success('Invoice created successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create invoice: ${error.message}`);
+    },
+  });
+}
+
+// Add additional cost
+export function useAddAdditionalCost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateAdditionalCostInput) => {
+      const { data, error } = await supabase
+        .from('invoice_additional_costs')
+        .insert({
+          invoice_id: input.invoice_id,
+          cost_type: input.cost_type,
+          description: input.description,
+          amount: input.amount,
+          allocation_method: input.allocation_method,
+          allocated_to_item_id: input.allocated_to_item_id,
+          xero_account_code: input.xero_account_code,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['additional-costs', data.invoice_id] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', data.invoice_id] });
+      toast.success('Additional cost added');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add cost: ${error.message}`);
+    },
+  });
+}
+
+// Delete additional cost
+export function useDeleteAdditionalCost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, invoiceId }: { id: string; invoiceId: string }) => {
+      const { error } = await supabase
+        .from('invoice_additional_costs')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return { invoiceId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['additional-costs', data.invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', data.invoiceId] });
+      toast.success('Additional cost removed');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to remove cost: ${error.message}`);
+    },
+  });
+}
+
+// Calculate landed costs (calls database function)
+export function useCalculateLandedCosts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { error } = await supabase.rpc('calculate_landed_costs', {
+        p_invoice_id: invoiceId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, invoiceId) => {
+      queryClient.invalidateQueries({ queryKey: ['landed-cost-allocations', invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
+      toast.success('Landed costs calculated');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to calculate landed costs: ${error.message}`);
+    },
+  });
+}
+
+// Update invoice payment
+export function useUpdateInvoicePayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payment_status,
+      payment_date,
+      payment_reference,
+      amount_paid,
+    }: {
+      id: string;
+      payment_status: string;
+      payment_date?: string;
+      payment_reference?: string;
+      amount_paid?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('purchase_order_invoices')
+        .update({
+          payment_status,
+          payment_date,
+          payment_reference,
+          amount_paid,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['po-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', data.id] });
+      toast.success('Payment updated');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update payment: ${error.message}`);
+    },
+  });
+}
+
+// Cost types for additional costs dropdown
+export const COST_TYPES = [
+  { value: 'freight', label: 'Freight/Shipping' },
+  { value: 'duty', label: 'Customs Duty' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'handling', label: 'Handling Fees' },
+  { value: 'brokerage', label: 'Customs Brokerage' },
+  { value: 'storage', label: 'Storage' },
+  { value: 'inspection', label: 'Inspection Fees' },
+  { value: 'other', label: 'Other' },
+];
+
+// Allocation methods
+export const ALLOCATION_METHODS = [
+  { value: 'proportional', label: 'Proportional (by value)' },
+  { value: 'quantity', label: 'By Quantity' },
+  { value: 'specific', label: 'Specific Item' },
+];
