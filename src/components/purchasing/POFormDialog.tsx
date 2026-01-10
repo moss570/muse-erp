@@ -421,7 +421,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
           unit_id: item.unit_id,
           quantity_ordered: item.quantity_ordered,
           unit_cost: item.unit_cost,
-          line_total: item.line_total,
+          // line_total is a generated column - do not include
           supplier_item_number: item.supplier_item_number || null,
           notes: item.notes || null,
           sort_order: index,
@@ -498,7 +498,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
               unit_id: item.unit_id,
               quantity_ordered: item.quantity_ordered,
               unit_cost: item.unit_cost,
-              line_total: item.line_total,
+              // line_total is a generated column - do not include
               supplier_item_number: item.supplier_item_number || null,
               notes: item.notes || null,
               sort_order: lineItems.indexOf(item),
@@ -512,7 +512,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
               unit_id: item.unit_id,
               quantity_ordered: item.quantity_ordered,
               unit_cost: item.unit_cost,
-              line_total: item.line_total,
+              // line_total is a generated column - do not include
               supplier_item_number: item.supplier_item_number || null,
               notes: item.notes || null,
               sort_order: lineItems.indexOf(item),
