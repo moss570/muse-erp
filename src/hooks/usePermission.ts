@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,7 +44,7 @@ export function usePermission(resourceKey: string) {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  const hasAccess = (level: 'read' | 'full' = 'read'): boolean => {
+  const hasAccess = useCallback((level: 'read' | 'full' = 'read'): boolean => {
     if (isLoading || !permissions) return false;
     
     // Check for admin wildcard
@@ -58,7 +59,7 @@ export function usePermission(resourceKey: string) {
     }
     
     return perm.access_level === 'read' || perm.access_level === 'full';
-  };
+  }, [isLoading, permissions, resourceKey]);
 
   const canRead = hasAccess('read');
   const canWrite = hasAccess('full');
@@ -78,7 +79,7 @@ export function usePermissions() {
   const { data: allPermissions, isLoading } = useQuery({
     queryKey: ['all-user-permissions', user?.id],
     queryFn: async () => {
-      if (!user) return { role: null, permissions: [] as Permission[] };
+      if (!user) return { role: null, permissions: [] as Permission[], isAdmin: false };
       
       // Get user's role
       const { data: roleData } = await supabase
@@ -89,7 +90,7 @@ export function usePermissions() {
         .limit(1)
         .single();
 
-      if (!roleData) return { role: null, permissions: [] as Permission[] };
+      if (!roleData) return { role: null, permissions: [] as Permission[], isAdmin: false };
 
       // Get role permissions
       const { data: perms } = await supabase
@@ -107,8 +108,10 @@ export function usePermissions() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const checkPermission = (resourceKey: string, level: 'read' | 'full' = 'read'): boolean => {
-    if (!allPermissions) return false;
+  // Memoize the permission check function to prevent re-creating on every render
+  const checkPermission = useCallback((resourceKey: string, level: 'read' | 'full' = 'read'): boolean => {
+    // While loading or no data, return false
+    if (isLoading || !allPermissions) return false;
     if (allPermissions.isAdmin) return true;
 
     const perm = allPermissions.permissions.find(p => p.resource_key === resourceKey);
@@ -119,13 +122,14 @@ export function usePermissions() {
     }
     
     return perm.access_level === 'read' || perm.access_level === 'full';
-  };
+  }, [isLoading, allPermissions]);
 
-  return {
-    role: allPermissions?.role,
-    isAdmin: allPermissions?.isAdmin || false,
-    permissions: allPermissions?.permissions || [],
+  // Memoize the return value to prevent unnecessary re-renders
+  return useMemo(() => ({
+    role: allPermissions?.role ?? null,
+    isAdmin: allPermissions?.isAdmin ?? false,
+    permissions: allPermissions?.permissions ?? [],
     isLoading,
     checkPermission,
-  };
+  }), [allPermissions, isLoading, checkPermission]);
 }
