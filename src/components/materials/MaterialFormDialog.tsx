@@ -467,6 +467,27 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     }
   }, [existingDocuments]);
 
+  // Auto-populate suppliers when existing material with manufacturer_distributor loads
+  useEffect(() => {
+    // Only run when we have loaded the material, suppliers data, and unit variants
+    if (!material || !suppliers || !manufacturers || !existingPurchaseUnits) return;
+    
+    const manufacturerName = material.manufacturer;
+    if (!manufacturerName) return;
+    
+    const selectedManufacturer = manufacturers.find(m => m.name === manufacturerName);
+    if (!selectedManufacturer || selectedManufacturer.supplier_type !== 'manufacturer_distributor') return;
+    
+    // If there are no existing supplier entries for this manufacturer, auto-populate
+    const hasManufacturerEntries = existingMaterialSuppliers?.some(ms => ms.supplier_id === selectedManufacturer.id);
+    if (!hasManufacturerEntries) {
+      // Wait a tick for unitVariants state to be set from existingPurchaseUnits
+      setTimeout(() => {
+        autoPopulateSuppliersForManufacturer(selectedManufacturer.id, material.item_number || undefined);
+      }, 100);
+    }
+  }, [material, suppliers, manufacturers, existingPurchaseUnits, existingMaterialSuppliers]);
+
   // Auto-populate suppliers when manufacturer is selected (Logic A)
   const autoPopulateSuppliersForManufacturer = (manufacturerId: string, manufacturerItemNumber: string | undefined) => {
     const manufacturer = suppliers?.find(s => s.id === manufacturerId);
@@ -2103,9 +2124,29 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         Link this material to vendors with specific pricing
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addMaterialSupplier}>
-                      <Plus className="h-4 w-4 mr-1" /> Add Supplier
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {/* Show Sync button if manufacturer is also distributor */}
+                      {(() => {
+                        const manufacturerName = form.watch('manufacturer');
+                        const selectedManufacturer = manufacturers?.find(m => m.name === manufacturerName);
+                        if (selectedManufacturer && selectedManufacturer.supplier_type === 'manufacturer_distributor') {
+                          return (
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => autoPopulateSuppliersForManufacturer(selectedManufacturer.id, form.getValues('item_number'))}
+                            >
+                              <Download className="h-4 w-4 mr-1" /> Sync from Manufacturer
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })()}
+                      <Button type="button" variant="outline" size="sm" onClick={addMaterialSupplier}>
+                        <Plus className="h-4 w-4 mr-1" /> Add Supplier
+                      </Button>
+                    </div>
                   </div>
 
                   {materialSuppliers.length === 0 ? (
