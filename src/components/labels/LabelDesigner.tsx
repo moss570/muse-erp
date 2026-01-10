@@ -300,9 +300,15 @@ export function LabelDesigner({
             {PALETTE_ITEMS.map((item) => (
               <Button
                 key={item.type}
+                type="button"
                 variant="outline"
                 className="w-full justify-start text-sm"
-                onClick={() => addElement(item.type, 10, 10 + elements.length * 15)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addElement(item.type, 10, 10 + elements.length * 15);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
               >
                 <item.icon className="h-4 w-4 mr-2" />
                 {item.label}
