@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Materials from "./pages/inventory/Materials";
 import Products from "./pages/inventory/Products";
+import MaterialInventory from "./pages/inventory/MaterialInventory";
 import Suppliers from "./pages/purchasing/Suppliers";
 import PurchaseOrders from "./pages/purchasing/PurchaseOrders";
 import PurchaseOrderDetail from "./pages/purchasing/PurchaseOrderDetail";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
             
             {/* Inventory routes */}
+            <Route path="/inventory/on-hand" element={<AppLayout><MaterialInventory /></AppLayout>} />
             <Route path="/inventory/materials" element={<AppLayout><Materials /></AppLayout>} />
             <Route path="/inventory/products" element={<AppLayout><Products /></AppLayout>} />
             <Route path="/inventory/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Inventory Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />

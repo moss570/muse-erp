@@ -43,6 +43,7 @@ const navItems: NavItem[] = [
     href: '/inventory',
     icon: Package,
     children: [
+      { title: 'Material Inventory', href: '/inventory/on-hand' },
       { title: 'Materials', href: '/inventory/materials' },
       { title: 'Products', href: '/inventory/products' },
       { title: 'Stock Levels', href: '/inventory/stock' },
