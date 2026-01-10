@@ -237,7 +237,16 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         .from('purchase_order_items')
         .select(`
           *,
-          material:materials(id, name, code, item_number),
+          material:materials(
+            id, 
+            name, 
+            code, 
+            item_number,
+            usage_unit_id,
+            usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name),
+            usage_unit_conversion,
+            base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name)
+          ),
           unit:units_of_measure(id, code, name)
         `)
         .eq('purchase_order_id', purchaseOrder.id)
@@ -279,22 +288,31 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
   // Load existing items
   useEffect(() => {
     if (existingItems) {
-      setLineItems(existingItems.map(item => ({
-        id: item.id,
-        material_id: item.material_id,
-        material_name: (item.material as any)?.name,
-        unit_id: item.unit_id,
-        unit_code: (item.unit as any)?.code,
-        pack_size: (item.unit as any)?.name || (item.unit as any)?.code,
-        our_item_number: (item.material as any)?.item_number || '',
-        supplier_item_number: item.supplier_item_number || '',
-        manufacturer_item_number: (item.material as any)?.item_number || '',
-        quantity_ordered: item.quantity_ordered,
-        unit_cost: item.unit_cost,
-        line_total: item.line_total || 0,
-        notes: item.notes || undefined,
-        isNew: false,
-      })));
+      setLineItems(existingItems.map(item => {
+        const material = item.material as any;
+        const usageUnit = material?.usage_unit;
+        const baseUnit = material?.base_unit;
+        
+        return {
+          id: item.id,
+          material_id: item.material_id,
+          material_name: material?.name,
+          unit_id: item.unit_id,
+          unit_code: (item.unit as any)?.code,
+          pack_size: (item.unit as any)?.name || (item.unit as any)?.code,
+          our_item_number: material?.item_number || '',
+          supplier_item_number: item.supplier_item_number || '',
+          manufacturer_item_number: material?.item_number || '',
+          usage_uom: usageUnit?.name || usageUnit?.code || baseUnit?.name || baseUnit?.code || '',
+          usage_unit_conversion: material?.usage_unit_conversion || 1,
+          pack_to_base_conversion: 1, // Will be properly set when selecting from dropdown
+          quantity_ordered: item.quantity_ordered,
+          unit_cost: item.unit_cost,
+          line_total: item.line_total || 0,
+          notes: item.notes || undefined,
+          isNew: false,
+        };
+      }));
     }
   }, [existingItems]);
 
