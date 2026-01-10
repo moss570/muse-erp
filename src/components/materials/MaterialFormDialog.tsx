@@ -160,6 +160,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
+  
+  // Default item photo state
+  const [defaultPhotoFile, setDefaultPhotoFile] = useState<File | null>(null);
+  const [defaultPhotoPath, setDefaultPhotoPath] = useState<string | undefined>();
+  const [defaultPhotoUrl, setDefaultPhotoUrl] = useState<string | undefined>();
+  const [defaultPhotoAddedAt, setDefaultPhotoAddedAt] = useState<string | undefined>();
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -385,6 +392,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         coa_required: material.coa_required ?? false,
         min_stock_level: material.min_stock_level ?? null,
       });
+      // Load default photo state
+      setDefaultPhotoPath((material as any).photo_path || undefined);
+      setDefaultPhotoUrl((material as any).photo_url || undefined);
+      setDefaultPhotoAddedAt((material as any).photo_added_at || undefined);
+      setDefaultPhotoFile(null);
     } else {
       form.reset({
         ...form.formState.defaultValues,
@@ -394,6 +406,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       setUnitVariants([]);
       setMaterialSuppliers([]);
       setDocuments([]);
+      // Reset default photo state
+      setDefaultPhotoPath(undefined);
+      setDefaultPhotoUrl(undefined);
+      setDefaultPhotoAddedAt(undefined);
+      setDefaultPhotoFile(null);
     }
     setActiveTab('basic');
   }, [material, form, open]);
@@ -522,6 +539,41 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     }
   };
 
+  // Upload default item photo and return photo data
+  const uploadDefaultPhoto = async (materialId: string): Promise<{ photo_path?: string; photo_url?: string; photo_added_at?: string }> => {
+    if (!defaultPhotoFile) {
+      return { photo_path: defaultPhotoPath, photo_url: defaultPhotoUrl, photo_added_at: defaultPhotoAddedAt };
+    }
+
+    const fileExt = defaultPhotoFile.name.split('.').pop();
+    const filePath = `${materialId}/${Date.now()}-default.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('material-photos')
+      .upload(filePath, defaultPhotoFile);
+
+    if (uploadError) {
+      toast({ title: 'Error uploading default photo', description: uploadError.message, variant: 'destructive' });
+      return {};
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('material-photos')
+      .getPublicUrl(filePath);
+
+    const newPhotoAddedAt = new Date().toISOString();
+    setDefaultPhotoPath(filePath);
+    setDefaultPhotoUrl(urlData.publicUrl);
+    setDefaultPhotoAddedAt(newPhotoAddedAt);
+    setDefaultPhotoFile(null);
+
+    return {
+      photo_path: filePath,
+      photo_url: urlData.publicUrl,
+      photo_added_at: newPhotoAddedAt,
+    };
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: MaterialFormData) => {
       const { data: newMaterial, error } = await supabase
@@ -561,7 +613,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         .single();
       if (error) throw error;
       
-      // Upload photos first
+      // Upload default photo and update material
+      const defaultPhotoData = await uploadDefaultPhoto(newMaterial.id);
+      if (defaultPhotoData.photo_path) {
+        await supabase.from('materials').update({
+          photo_path: defaultPhotoData.photo_path,
+          photo_url: defaultPhotoData.photo_url,
+          photo_added_at: defaultPhotoData.photo_added_at,
+        }).eq('id', newMaterial.id);
+      }
+      
+      // Upload unit variant photos
       await uploadUnitVariantPhotos(newMaterial.id);
       
       // Insert unit variants (purchase units)
@@ -660,7 +722,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         .eq('id', material.id);
       if (error) throw error;
       
-      // Upload photos first
+      // Upload default photo and update material
+      const defaultPhotoData = await uploadDefaultPhoto(material.id);
+      if (defaultPhotoData.photo_path) {
+        await supabase.from('materials').update({
+          photo_path: defaultPhotoData.photo_path,
+          photo_url: defaultPhotoData.photo_url,
+          photo_added_at: defaultPhotoData.photo_added_at,
+        }).eq('id', material.id);
+      }
+      
+      // Upload unit variant photos
       await uploadUnitVariantPhotos(material.id);
       
       // Update unit variants - delete removed, insert new, update existing
@@ -1760,9 +1832,19 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     const usageUnitId = form.watch('usage_unit_id');
                     const usageUnit = units?.find(u => u.id === usageUnitId);
                     const usageConversion = form.watch('usage_unit_conversion');
+                    const defaultPhotoStale = isPhotoStale(defaultPhotoAddedAt);
+
+                    // Calculate expiry date (10 months from upload)
+                    const getExpiryDate = (addedAt: string | undefined) => {
+                      if (!addedAt) return null;
+                      const date = new Date(addedAt);
+                      date.setMonth(date.getMonth() + 10);
+                      return date;
+                    };
+                    const expiryDate = getExpiryDate(defaultPhotoAddedAt);
                     
                     return (
-                      <div className="p-4 border rounded-md bg-primary/5 border-primary/20">
+                      <div className="p-4 border rounded-md bg-primary/5 border-primary/20 space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="flex items-center gap-2">
@@ -1784,6 +1866,64 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground">From Basic Info</span>
+                        </div>
+
+                        {/* Default Item Photo Upload */}
+                        <div className="border-t pt-4">
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1 space-y-2">
+                              <label className="text-xs font-medium text-muted-foreground block">
+                                Default Item Photo
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) setDefaultPhotoFile(file);
+                                  }}
+                                  className="flex-1"
+                                />
+                                {defaultPhotoFile && (
+                                  <span className="text-xs text-green-600">New file selected</span>
+                                )}
+                              </div>
+                              {/* Photo Dates */}
+                              {defaultPhotoAddedAt && (
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span>
+                                    Uploaded: {new Date(defaultPhotoAddedAt).toLocaleDateString()}
+                                  </span>
+                                  {expiryDate && (
+                                    <span className={defaultPhotoStale ? 'text-amber-600 font-medium' : ''}>
+                                      Expires: {expiryDate.toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {defaultPhotoUrl && (
+                              <div className="flex items-center gap-2">
+                                <img 
+                                  src={defaultPhotoUrl} 
+                                  alt="Default product" 
+                                  className="h-16 w-16 rounded object-cover border"
+                                />
+                                {defaultPhotoStale && (
+                                  <div className="flex items-center gap-1 text-amber-600">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <span className="text-xs">Review needed<br/>(10+ months)</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {!defaultPhotoUrl && !defaultPhotoFile && (
+                              <div className="h-16 w-16 rounded border border-dashed flex items-center justify-center text-muted-foreground">
+                                <ImageIcon className="h-6 w-6" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1881,9 +2021,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 </div>
 
                                 {/* Photo Upload Section */}
-                                <div className="flex items-center gap-4 pt-2 border-t">
-                                  <div className="flex-1">
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                <div className="flex items-start gap-4 pt-2 border-t">
+                                  <div className="flex-1 space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground block">
                                       Product Photo
                                     </label>
                                     <div className="flex items-center gap-2">
@@ -1897,6 +2037,21 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                         <span className="text-xs text-green-600">New file selected</span>
                                       )}
                                     </div>
+                                    {/* Photo Dates */}
+                                    {uv.photo_added_at && (
+                                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                        <span>
+                                          Uploaded: {new Date(uv.photo_added_at).toLocaleDateString()}
+                                        </span>
+                                        <span className={photoStale ? 'text-amber-600 font-medium' : ''}>
+                                          Expires: {(() => {
+                                            const date = new Date(uv.photo_added_at);
+                                            date.setMonth(date.getMonth() + 10);
+                                            return date.toLocaleDateString();
+                                          })()}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                   {uv.photo_url && (
                                     <div className="flex items-center gap-2">
@@ -1908,7 +2063,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       {photoStale && (
                                         <div className="flex items-center gap-1 text-amber-600">
                                           <AlertTriangle className="h-4 w-4" />
-                                          <span className="text-xs">Review needed (10+ months)</span>
+                                          <span className="text-xs">Review needed<br/>(10+ months)</span>
                                         </div>
                                       )}
                                     </div>

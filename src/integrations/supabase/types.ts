@@ -883,6 +883,9 @@ export type Database = {
           min_stock_level: number | null
           name: string
           other_hazards: string | null
+          photo_added_at: string | null
+          photo_path: string | null
+          photo_url: string | null
           receiving_temperature_max: number | null
           receiving_temperature_min: number | null
           storage_temperature_max: number | null
@@ -918,6 +921,9 @@ export type Database = {
           min_stock_level?: number | null
           name: string
           other_hazards?: string | null
+          photo_added_at?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
           storage_temperature_max?: number | null
@@ -953,6 +959,9 @@ export type Database = {
           min_stock_level?: number | null
           name?: string
           other_hazards?: string | null
+          photo_added_at?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
           storage_temperature_max?: number | null
