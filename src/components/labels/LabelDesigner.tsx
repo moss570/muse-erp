@@ -73,6 +73,7 @@ const FIELD_OPTIONS = [
   { value: 'expiry_date', label: 'Expiry Date', icon: Calendar },
   { value: 'received_date', label: 'Received Date', icon: Calendar },
   { value: 'location', label: 'Location', icon: Type },
+  { value: 'allergens', label: 'Allergens', icon: Type },
   { value: 'product_name', label: 'Product Name', icon: Type },
   { value: 'product_sku', label: 'Product SKU', icon: Hash },
   { value: 'pallet_number', label: 'Pallet Number', icon: Hash },

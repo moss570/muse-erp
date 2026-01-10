@@ -68,7 +68,7 @@ export function LabelPrintDialog({
           .from('receiving_lots')
           .select(`
             *,
-            material:materials(id, name, code),
+            material:materials(id, name, code, allergens),
             supplier:suppliers(id, name, code),
             unit:units_of_measure(id, name, code),
             location:locations(id, name, location_code)
@@ -113,7 +113,7 @@ export function LabelPrintDialog({
     const data = lotData as Record<string, unknown>;
 
     if (isReceivingLot) {
-      const material = data.material as { name?: string; code?: string } | null;
+      const material = data.material as { name?: string; code?: string; allergens?: string[] | null } | null;
       const supplier = data.supplier as { name?: string } | null;
       const unit = data.unit as { code?: string } | null;
       const location = data.location as { name?: string } | null;
@@ -138,6 +138,12 @@ export function LabelPrintDialog({
           return data.received_date ? format(new Date(data.received_date as string), 'MM/dd/yyyy') : '';
         case 'location':
           return location?.name || '';
+        case 'allergens':
+          const allergens = material?.allergens;
+          if (allergens && allergens.length > 0) {
+            return `Contains: ${allergens.join(', ')}`;
+          }
+          return '';
         default:
           return '';
       }
@@ -205,9 +211,10 @@ export function LabelPrintDialog({
         `;
       } else if (el.type === 'barcode') {
         const barcodeValue = getFieldValue(el.fieldKey || 'lot_number') || '123456789';
+        const barcodeWidth = Math.min((el.width / 100) * widthPx, widthPx - left - 10);
         elementsHtml += `
-          <div style="position: absolute; left: ${left}px; top: ${top}px; width: ${width}px;"
-            class="barcode-container" data-value="${barcodeValue}" data-format="${el.barcodeType || 'CODE128'}">
+          <div style="position: absolute; left: ${left}px; top: ${top}px; width: ${barcodeWidth}px; overflow: hidden;"
+            class="barcode-container" data-value="${barcodeValue}" data-format="${el.barcodeType || 'CODE128'}" data-width="${barcodeWidth}">
           </div>
         `;
       }
@@ -228,18 +235,27 @@ export function LabelPrintDialog({
       containers.forEach((container) => {
         const value = container.getAttribute('data-value') || '123456789';
         const formatType = container.getAttribute('data-format') || 'CODE128';
+        const containerWidth = parseInt(container.getAttribute('data-width') || '200');
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         container.innerHTML = '';
         container.appendChild(svg);
+        
+        // Calculate barcode width based on container and value length
+        const barcodeWidth = Math.max(1, Math.min(2, Math.floor(containerWidth / (value.length * 11))));
+        
         try {
           JsBarcode(svg, value, {
             format: formatType,
-            width: 2,
-            height: 40,
+            width: barcodeWidth,
+            height: 35,
             displayValue: true,
-            fontSize: 10,
+            fontSize: 9,
             margin: 2,
           });
+          // Make SVG fit container
+          svg.style.width = '100%';
+          svg.style.height = 'auto';
+          svg.style.maxWidth = `${containerWidth}px`;
         } catch {
           container.innerHTML = `<span style="color: red; font-size: 10px;">Invalid barcode</span>`;
         }
@@ -277,17 +293,22 @@ export function LabelPrintDialog({
           document.querySelectorAll('.barcode-container').forEach(function(container) {
             var value = container.getAttribute('data-value') || '123456789';
             var format = container.getAttribute('data-format') || 'CODE128';
+            var containerWidth = parseInt(container.getAttribute('data-width') || '200');
             var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             container.appendChild(svg);
+            var barcodeWidth = Math.max(1, Math.min(2, Math.floor(containerWidth / (value.length * 11))));
             try {
               JsBarcode(svg, value, {
                 format: format,
-                width: 2,
-                height: 40,
+                width: barcodeWidth,
+                height: 35,
                 displayValue: true,
-                fontSize: 10,
+                fontSize: 9,
                 margin: 2,
               });
+              svg.style.width = '100%';
+              svg.style.height = 'auto';
+              svg.style.maxWidth = containerWidth + 'px';
             } catch(e) {
               container.innerHTML = '<span style="color: red;">Invalid barcode</span>';
             }
