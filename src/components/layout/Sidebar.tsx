@@ -116,6 +116,7 @@ const navItems: NavItem[] = [
     href: '/reports',
     icon: BarChart3,
     children: [
+      { title: 'Profit & Loss', href: '/reports/profit-loss' },
       { title: 'KPI Dashboard', href: '/reports/kpi' },
       { title: 'Production Reports', href: '/reports/production' },
       { title: 'Labor Analytics', href: '/reports/labor' },
