@@ -15,9 +15,20 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -214,6 +225,7 @@ export default function Suppliers() {
   const [contacts, setContacts] = useState<SupplierContact[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showArchivedDocs, setShowArchivedDocs] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string; isNew: boolean } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -544,18 +556,32 @@ export default function Suppliers() {
     }]);
   };
 
-  const removeDocument = async (docId: string, isNew: boolean) => {
-    if (!isNew) {
-      const { error } = await supabase
-        .from('supplier_documents')
-        .delete()
-        .eq('id', docId);
-      if (error) {
-        toast({ title: 'Error deleting document', description: error.message, variant: 'destructive' });
-        return;
-      }
+  const handleRemoveDocumentClick = (docId: string, docName: string, isNew: boolean) => {
+    if (isNew) {
+      // For new documents that haven't been saved yet, just remove from local state
+      setDocuments(prev => prev.filter(d => d.id !== docId));
+    } else {
+      // For existing documents, show confirmation dialog
+      setDocumentToDelete({ id: docId, name: docName, isNew });
     }
-    setDocuments(prev => prev.filter(d => d.id !== docId));
+  };
+
+  const confirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
+    
+    const { error } = await supabase
+      .from('supplier_documents')
+      .delete()
+      .eq('id', documentToDelete.id);
+    
+    if (error) {
+      toast({ title: 'Error deleting document', description: error.message, variant: 'destructive' });
+    } else {
+      setDocuments(prev => prev.filter(d => d.id !== documentToDelete.id));
+      toast({ title: 'Document deleted permanently' });
+    }
+    
+    setDocumentToDelete(null);
   };
 
   const archiveDocument = async (docId: string) => {
@@ -1821,7 +1847,8 @@ export default function Suppliers() {
                               variant="ghost"
                               size="icon"
                               className="text-destructive"
-                              onClick={() => removeDocument(doc.id, doc.isNew)}
+                              onClick={() => handleRemoveDocumentClick(doc.id, doc.document_name, doc.isNew)}
+                              title={doc.isNew ? "Remove" : "Delete permanently"}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -1931,6 +1958,28 @@ export default function Suppliers() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Document Confirmation Dialog */}
+      <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document Permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete "{documentToDelete?.name || 'this document'}"? 
+              This action cannot be undone. Consider archiving instead if you want to keep a record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteDocument}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
