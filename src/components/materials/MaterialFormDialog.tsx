@@ -1959,23 +1959,26 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
                       {isPackaging && (
                         <div className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="pkg_fda_food_contact"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Approved by FDA for food contact</FormLabel>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
+                          {/* Hide FDA food contact for Boxes - handled in Box-specific section */}
+                          {!isBoxes && (
+                            <FormField
+                              control={form.control}
+                              name="pkg_fda_food_contact"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Approved by FDA for food contact</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          )}
 
                           <FormField
                             control={form.control}
@@ -1994,59 +1997,68 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             )}
                           />
 
-                          <FormField
-                            control={form.control}
-                            name="pkg_food_grade_suitable"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Food Grade Confirmation: Is material suitable for food contact?</FormLabel>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
+                          {/* Hide Food Grade Confirmation for Boxes */}
+                          {!isBoxes && (
+                            <FormField
+                              control={form.control}
+                              name="pkg_food_grade_suitable"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Food Grade Confirmation: Is material suitable for food contact?</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          )}
 
-                          <FormField
-                            control={form.control}
-                            name="pkg_pcr_fda_approved"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Recycled Content Statement: If using post-consumer recycled (PCR) content, is it FDA-approved for food contact?</FormLabel>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
+                          {/* Hide Recycled Content Statement for Boxes - has box-specific version */}
+                          {!isBoxes && (
+                            <FormField
+                              control={form.control}
+                              name="pkg_pcr_fda_approved"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Recycled Content Statement: If using post-consumer recycled (PCR) content, is it FDA-approved for food contact?</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          )}
 
-                          <FormField
-                            control={form.control}
-                            name="pkg_heavy_metals_compliant"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Heavy Metals: Certification that lead, mercury, cadmium, and hexavalent chromium are &lt;100ppm</FormLabel>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
+                          {/* Hide Heavy Metals for Boxes - has box-specific CONEG version */}
+                          {!isBoxes && (
+                            <FormField
+                              control={form.control}
+                              name="pkg_heavy_metals_compliant"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Heavy Metals: Certification that lead, mercury, cadmium, and hexavalent chromium are &lt;100ppm</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          )}
 
                           <FormField
                             control={form.control}
@@ -2068,55 +2080,58 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             )}
                           />
 
-                          <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="pkg_volume"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Volume of Container</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      step="0.001"
-                                      placeholder="0.000"
-                                      {...field}
-                                      value={field.value ?? ''}
-                                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="pkg_volume_uom_id"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>UOM of Volume</FormLabel>
-                                  <Select 
-                                    onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
-                                    value={field.value || '__none__'}
-                                  >
+                          {/* Hide Volume fields for Boxes */}
+                          {!isBoxes && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="pkg_volume"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Volume of Container</FormLabel>
                                     <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select UOM" />
-                                      </SelectTrigger>
+                                      <Input 
+                                        type="number" 
+                                        step="0.001"
+                                        placeholder="0.000"
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                      />
                                     </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="__none__">Select UOM</SelectItem>
-                                      {units?.filter(u => u.unit_type === 'volume').map((unit) => (
-                                        <SelectItem key={unit.id} value={unit.id}>
-                                          {unit.name} ({unit.code})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="pkg_volume_uom_id"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>UOM of Volume</FormLabel>
+                                    <Select 
+                                      onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                                      value={field.value || '__none__'}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select UOM" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Select UOM</SelectItem>
+                                        {units?.filter(u => u.unit_type === 'volume').map((unit) => (
+                                          <SelectItem key={unit.id} value={unit.id}>
+                                            {unit.name} ({unit.code})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          )}
 
                           <FormField
                             control={form.control}
