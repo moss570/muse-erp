@@ -1517,8 +1517,33 @@ export default function Suppliers() {
                             </span>
                           </div>
 
-                          {/* Risk Level and Dates */}
-                          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                          {/* Status and Classification */}
+                          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                            <FormField
+                              control={form.control}
+                              name="approval_status"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>QA Status</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {QA_APPROVAL_STATUSES.map((status) => (
+                                        <SelectItem key={status.value} value={status.value}>
+                                          {status.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormDescription>Current QA approval status</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                             <FormField
                               control={form.control}
                               name="risk_level"
@@ -1544,6 +1569,10 @@ export default function Suppliers() {
                                 </FormItem>
                               )}
                             />
+                          </div>
+
+                          {/* Dates */}
+                          <div className="grid grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="approval_date"
