@@ -116,7 +116,7 @@ const materialFormSchema = z.object({
   storage_temperature_min: z.coerce.number().optional().nullable(),
   storage_temperature_max: z.coerce.number().optional().nullable(),
   density: z.coerce.number().optional().nullable(),
-  label_copy: z.string().min(1, 'Label Copy is required'),
+  label_copy: z.string().optional().default(''),
   
   // Packaging Specifications
   pkg_fda_food_contact: z.boolean().default(false),
