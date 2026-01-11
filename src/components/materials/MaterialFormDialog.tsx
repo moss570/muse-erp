@@ -34,7 +34,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, AlertTriangle, ImageIcon } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, AlertTriangle, ImageIcon, ShieldCheck } from 'lucide-react';
+import {
+  ApprovalStatusBadge,
+  ApprovalActionsDropdown,
+  ApprovalHistoryPanel,
+  ComplianceDocumentsPanel,
+} from '@/components/approval';
 import { CreateUnitDialog } from './CreateUnitDialog';
 import type { Tables } from '@/integrations/supabase/types';
 import { differenceInMonths } from 'date-fns';
@@ -1068,13 +1074,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="specifications">Specifications</TabsTrigger>
                 <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
                 <TabsTrigger value="unit-variants">Unit Variants</TabsTrigger>
                 <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="qa-workflow" className="flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  QA
+                </TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -2525,6 +2535,56 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </div>
                   )}
                 </div>
+              </TabsContent>
+
+              {/* QA Workflow Tab */}
+              <TabsContent value="qa-workflow" className="space-y-6 mt-4">
+                {!material ? (
+                  <div className="text-center py-12 text-muted-foreground border rounded-md bg-muted/20">
+                    <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>Save the material first to access QA workflow.</p>
+                    <p className="text-xs mt-1">QA status, approval actions, and compliance documents will be available after creation.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Current Status Section */}
+                    <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Current QA Status</p>
+                          <ApprovalStatusBadge 
+                            status={(material as any).approval_status || 'Draft'} 
+                            size="lg" 
+                          />
+                        </div>
+                      </div>
+                      <ApprovalActionsDropdown
+                        recordId={material.id}
+                        tableName="materials"
+                        currentStatus={(material as any).approval_status || 'Draft'}
+                      />
+                    </div>
+
+                    {/* Compliance Documents */}
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Supplier Compliance Documents</h4>
+                      <ComplianceDocumentsPanel
+                        entityId={material.id}
+                        entityType="material"
+                        entityName={material.name}
+                      />
+                    </div>
+
+                    {/* Approval History */}
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Approval History</h4>
+                      <ApprovalHistoryPanel
+                        recordId={material.id}
+                        tableName="materials"
+                      />
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
 

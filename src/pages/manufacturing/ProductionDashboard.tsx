@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Factory, 
   CalendarIcon, 
@@ -19,7 +20,9 @@ import {
   TrendingUp,
   Package,
   DollarSign,
-  RefreshCw
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -27,6 +30,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncProductionJournal, useXeroJournalBatches, useUnsyncedProductionCount } from "@/hooks/useXeroManufacturing";
 import { useXeroConnection } from "@/hooks/useXero";
+import { ApprovalStatusBadge } from "@/components/approval";
 
 export default function ProductionDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -279,6 +283,7 @@ export default function ProductionDashboard() {
                     <TableHead className="text-right">Overhead</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>QA Status</TableHead>
                     <TableHead>Synced</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -316,6 +321,23 @@ export default function ProductionDashboard() {
                         >
                           {lot.status || "draft"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <ApprovalStatusBadge 
+                                status={(lot as any).approval_status || 'Draft'} 
+                                size="sm" 
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {(lot as any).approval_status === 'Approved' 
+                                ? 'Approved for shipment' 
+                                : 'Not yet approved for shipment'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>
                         {lot.is_synced_to_xero ? (
