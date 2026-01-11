@@ -243,8 +243,18 @@ export function useCreateInvoice() {
       queryClient.invalidateQueries({ queryKey: ['invoice', data.id] });
       toast.success('Invoice created successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to create invoice: ${error.message}`);
+    onError: (error: Error & { code?: string }) => {
+      // Check for duplicate invoice number constraint violation
+      if (error.message?.includes('purchase_order_invoices_supplier_id_invoice_number_key') || 
+          error.message?.includes('duplicate key value')) {
+        toast.error('Duplicate Invoice Number', {
+          description: 'An invoice with this number already exists for this supplier. Please use a different invoice number.',
+        });
+      } else {
+        toast.error('Failed to create invoice', {
+          description: error.message,
+        });
+      }
     },
   });
 }
