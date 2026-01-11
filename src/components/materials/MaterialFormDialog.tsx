@@ -2451,7 +2451,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {documents.map((doc, index) => {
+                      {documents.filter(d => showArchivedDocs || !d.is_archived).map((doc) => {
+                        const index = documents.findIndex(d => d === doc);
                         const requirement = documentRequirements?.find(r => r.id === doc.requirement_id);
                         
                         return (
