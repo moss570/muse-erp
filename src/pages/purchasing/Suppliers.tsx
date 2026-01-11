@@ -60,7 +60,11 @@ import {
   Plus,
   Users,
   Mail,
-  History
+  History,
+  Archive,
+  ArchiveRestore,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
@@ -169,6 +173,9 @@ interface DocumentUpload {
   date_published?: string;
   date_reviewed?: string;
   expiry_date?: string;
+  is_archived?: boolean;
+  archived_at?: string;
+  archive_reason?: string;
   isNew: boolean;
 }
 
@@ -206,6 +213,7 @@ export default function Suppliers() {
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [contacts, setContacts] = useState<SupplierContact[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showArchivedDocs, setShowArchivedDocs] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -319,6 +327,9 @@ export default function Suppliers() {
         date_published: doc.date_published || undefined,
         date_reviewed: doc.date_reviewed || undefined,
         expiry_date: doc.expiry_date || undefined,
+        is_archived: (doc as any).is_archived || false,
+        archived_at: (doc as any).archived_at || undefined,
+        archive_reason: (doc as any).archive_reason || undefined,
         isNew: false,
       })));
     }
@@ -545,6 +556,42 @@ export default function Suppliers() {
       }
     }
     setDocuments(prev => prev.filter(d => d.id !== docId));
+  };
+
+  const archiveDocument = async (docId: string) => {
+    const { error } = await supabase
+      .from('supplier_documents')
+      .update({
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+      })
+      .eq('id', docId);
+    if (error) {
+      toast({ title: 'Error archiving document', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setDocuments(prev => prev.map(d => 
+      d.id === docId ? { ...d, is_archived: true, archived_at: new Date().toISOString() } : d
+    ));
+    toast({ title: 'Document archived' });
+  };
+
+  const restoreDocument = async (docId: string) => {
+    const { error } = await supabase
+      .from('supplier_documents')
+      .update({
+        is_archived: false,
+        archived_at: null,
+      })
+      .eq('id', docId);
+    if (error) {
+      toast({ title: 'Error restoring document', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setDocuments(prev => prev.map(d => 
+      d.id === docId ? { ...d, is_archived: false, archived_at: undefined } : d
+    ));
+    toast({ title: 'Document restored' });
   };
 
   const updateDocument = (docId: string, field: keyof DocumentUpload, value: string) => {
@@ -1670,10 +1717,22 @@ export default function Suppliers() {
                       <h3 className="font-medium">Supplier Documents</h3>
                       <p className="text-sm text-muted-foreground">Upload required documents for this supplier</p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addDocument}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Add Document
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowArchivedDocs(!showArchivedDocs)}
+                        className="text-muted-foreground"
+                      >
+                        {showArchivedDocs ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                        {showArchivedDocs ? 'Hide Archived' : 'Show Archived'}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={addDocument}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Add Document
+                      </Button>
+                    </div>
                   </div>
 
                   {!editingSupplier && (
@@ -1683,7 +1742,7 @@ export default function Suppliers() {
                     </div>
                   )}
 
-                  {editingSupplier && documents.length === 0 && (
+                  {editingSupplier && documents.filter(d => showArchivedDocs || !d.is_archived).length === 0 && (
                     <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p>No documents uploaded</p>
@@ -1691,8 +1750,14 @@ export default function Suppliers() {
                     </div>
                   )}
 
-                  {editingSupplier && documents.map((doc) => (
-                    <div key={doc.id} className="p-4 border rounded-lg space-y-3">
+                  {editingSupplier && documents.filter(d => showArchivedDocs || !d.is_archived).map((doc) => (
+                    <div key={doc.id} className={`p-4 border rounded-lg space-y-3 ${doc.is_archived ? 'opacity-60 bg-muted/30' : ''}`}>
+                      {doc.is_archived && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground pb-2 border-b">
+                          <Archive className="h-4 w-4" />
+                          <span>Archived{doc.archived_at ? ` on ${new Date(doc.archived_at).toLocaleDateString()}` : ''}</span>
+                        </div>
+                      )}
                       <div className="flex items-start justify-between">
                         <div className="flex-1 grid grid-cols-2 gap-3">
                           <div>
@@ -1701,6 +1766,7 @@ export default function Suppliers() {
                               value={doc.document_name}
                               onChange={(e) => updateDocument(doc.id, 'document_name', e.target.value)}
                               placeholder="Document name"
+                              disabled={doc.is_archived}
                             />
                           </div>
                           <div>
@@ -1708,6 +1774,7 @@ export default function Suppliers() {
                             <Select 
                               value={doc.requirement_id || '__none__'} 
                               onValueChange={(v) => updateDocument(doc.id, 'requirement_id', v === '__none__' ? '' : v)}
+                              disabled={doc.is_archived}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
@@ -1723,15 +1790,43 @@ export default function Suppliers() {
                             </Select>
                           </div>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => removeDocument(doc.id, doc.isNew)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {!doc.isNew && !doc.is_archived && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground"
+                              onClick={() => archiveDocument(doc.id)}
+                              title="Archive document"
+                            >
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {doc.is_archived && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground"
+                              onClick={() => restoreDocument(doc.id)}
+                              title="Restore document"
+                            >
+                              <ArchiveRestore className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!doc.is_archived && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => removeDocument(doc.id, doc.isNew)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-3">
@@ -1755,6 +1850,7 @@ export default function Suppliers() {
                           ) : (
                             <Input
                               type="file"
+                              disabled={doc.is_archived}
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) handleFileUpload(doc.id, file);
@@ -1771,6 +1867,7 @@ export default function Suppliers() {
                             type="date"
                             value={doc.date_published || ''}
                             onChange={(e) => updateDocument(doc.id, 'date_published', e.target.value)}
+                            disabled={doc.is_archived}
                           />
                         </div>
                         <div>
@@ -1779,6 +1876,7 @@ export default function Suppliers() {
                             type="date"
                             value={doc.expiry_date || ''}
                             onChange={(e) => updateDocument(doc.id, 'expiry_date', e.target.value)}
+                            disabled={doc.is_archived}
                           />
                           {doc.expiry_date && (
                             <div className="mt-1">
