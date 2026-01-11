@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       response_type: "code",
       client_id: XERO_CLIENT_ID,
       redirect_uri: `${SUPABASE_URL}/functions/v1/xero-oauth-callback`,
-      scope: "openid profile email accounting.transactions accounting.contacts offline_access",
+      scope: "openid profile email accounting.transactions accounting.contacts accounting.settings offline_access",
       state,
     });
 
