@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useEmployees, useEmployeeShifts } from '@/hooks/useEmployees';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,22 @@ export default function Schedule() {
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [laborCostPerGallon, setLaborCostPerGallon] = useState(2.50);
+
+  // Load settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('schedule_settings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.labor_cost_per_gallon) {
+          setLaborCostPerGallon(parsed.labor_cost_per_gallon);
+        }
+      } catch (e) {
+        console.error('Failed to parse saved settings');
+      }
+    }
+  }, [settingsOpen]); // Re-read when settings dialog closes
   
   const { employees } = useEmployees();
   const { shifts, updateShift } = useEmployeeShifts();
@@ -157,9 +173,8 @@ export default function Schedule() {
     return { totalHours, totalCost, shiftsCount };
   }, [shifts, employees, dateRange]);
 
-  // Labor cost settings (would come from settings in real implementation)
-  const laborCostPerGallon = 2.50; // Example: $2.50 labor cost per gallon target
-  const gallonsNeeded = payrollData.totalCost / laborCostPerGallon;
+  // Calculate gallons needed based on labor cost setting
+  const gallonsNeeded = laborCostPerGallon > 0 ? payrollData.totalCost / laborCostPerGallon : 0;
 
   // Get shifts for a specific date - compare date strings to avoid timezone issues
   const getShiftsForDate = (date: Date) => {
