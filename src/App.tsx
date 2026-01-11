@@ -39,6 +39,8 @@ import PeriodClose from "./pages/settings/PeriodClose";
 import ProfitLoss from "./pages/reports/ProfitLoss";
 import XeroConfiguration from "./pages/settings/XeroConfiguration";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
+import QADashboard from "./pages/quality/QADashboard";
+import CloseDay from "./pages/operations/CloseDay";
 
 const queryClient = new QueryClient();
 
@@ -118,17 +120,21 @@ const App = () => (
                 </AppLayout>
               }
             />
+            {/* Quality routes */}
+            <Route path="/quality/dashboard" element={<QADashboard />} />
             <Route
               path="/quality/*"
               element={
                 <AppLayout>
                   <div className="text-center py-12">
                     <h2 className="text-2xl font-bold mb-2">Quality & Food Safety Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 2</p>
+                    <p className="text-muted-foreground">Coming soon</p>
                   </div>
                 </AppLayout>
               }
             />
+            {/* Operations routes */}
+            <Route path="/operations/close-day" element={<CloseDay />} />
             {/* Scheduling routes */}
             <Route path="/scheduling/employees" element={<AppLayout><Schedule /></AppLayout>} />
             <Route

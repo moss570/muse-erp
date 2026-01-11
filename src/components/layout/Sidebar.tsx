@@ -22,6 +22,8 @@ import {
   Clock,
   Calendar,
   FileText,
+  CalendarCheck,
+  Shield,
 } from 'lucide-react';
 
 interface NavItem {
@@ -86,9 +88,16 @@ const navItems: NavItem[] = [
     icon: ClipboardCheck,
     children: [
       { title: 'QA Dashboard', href: '/quality/dashboard' },
-      { title: 'Quality Tests', href: '/quality/tests' },
-      { title: 'HACCP Logs', href: '/quality/haccp' },
-      { title: 'Compliance', href: '/quality/compliance' },
+      { title: 'Document Watchlist', href: '/quality/documents' },
+    ],
+  },
+  {
+    title: 'Operations',
+    href: '/operations',
+    icon: CalendarCheck,
+    requiredRole: 'manager',
+    children: [
+      { title: 'Close Day', href: '/operations/close-day' },
     ],
   },
   {
