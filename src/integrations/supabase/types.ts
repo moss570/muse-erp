@@ -2021,45 +2021,67 @@ export type Database = {
       }
       material_documents: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
           date_published: string | null
           date_reviewed: string | null
           document_name: string
+          expiry_date: string | null
           file_path: string | null
           file_url: string | null
           id: string
+          is_archived: boolean | null
           material_id: string
           requirement_id: string | null
           updated_at: string
           uploaded_by: string | null
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           date_published?: string | null
           date_reviewed?: string | null
           document_name: string
+          expiry_date?: string | null
           file_path?: string | null
           file_url?: string | null
           id?: string
+          is_archived?: boolean | null
           material_id: string
           requirement_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           date_published?: string | null
           date_reviewed?: string | null
           document_name?: string
+          expiry_date?: string | null
           file_path?: string | null
           file_url?: string | null
           id?: string
+          is_archived?: boolean | null
           material_id?: string
           requirement_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "material_documents_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "material_documents_material_id_fkey"
             columns: ["material_id"]
@@ -4263,6 +4285,9 @@ export type Database = {
       }
       supplier_documents: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
           date_published: string | null
           date_reviewed: string | null
@@ -4271,12 +4296,16 @@ export type Database = {
           file_path: string | null
           file_url: string | null
           id: string
+          is_archived: boolean | null
           requirement_id: string | null
           supplier_id: string
           updated_at: string
           uploaded_by: string | null
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           date_published?: string | null
           date_reviewed?: string | null
@@ -4285,12 +4314,16 @@ export type Database = {
           file_path?: string | null
           file_url?: string | null
           id?: string
+          is_archived?: boolean | null
           requirement_id?: string | null
           supplier_id: string
           updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           date_published?: string | null
           date_reviewed?: string | null
@@ -4299,12 +4332,20 @@ export type Database = {
           file_path?: string | null
           file_url?: string | null
           id?: string
+          is_archived?: boolean | null
           requirement_id?: string | null
           supplier_id?: string
           updated_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_documents_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_documents_requirement_id_fkey"
             columns: ["requirement_id"]

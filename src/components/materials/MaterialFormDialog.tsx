@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, AlertTriangle, ImageIcon, ShieldCheck } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, EyeOff, AlertTriangle, ImageIcon, ShieldCheck, Archive, ArchiveRestore } from 'lucide-react';
 import {
   ApprovalStatusBadge,
   ApprovalActionsDropdown,
@@ -149,6 +149,10 @@ interface DocumentUpload {
   file_url?: string;
   date_published?: string;
   date_reviewed?: string;
+  expiry_date?: string;
+  is_archived?: boolean;
+  archived_at?: string;
+  archive_reason?: string;
   isNew: boolean;
 }
 
@@ -164,6 +168,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [materialSuppliers, setMaterialSuppliers] = useState<MaterialSupplier[]>([]);
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showArchivedDocs, setShowArchivedDocs] = useState(false);
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
@@ -469,6 +474,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         file_url: doc.file_url || undefined,
         date_published: doc.date_published || undefined,
         date_reviewed: doc.date_reviewed || undefined,
+        expiry_date: (doc as any).expiry_date || undefined,
+        is_archived: (doc as any).is_archived || false,
+        archived_at: (doc as any).archived_at || undefined,
+        archive_reason: (doc as any).archive_reason || undefined,
         isNew: false,
       })));
     }
@@ -961,6 +970,48 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     setDocuments(documents.filter((_, i) => i !== index));
   };
 
+  const archiveDocument = async (index: number) => {
+    const doc = documents[index];
+    if (!doc.id) return;
+    
+    const { error } = await supabase
+      .from('material_documents')
+      .update({
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+      })
+      .eq('id', doc.id);
+    if (error) {
+      toast({ title: 'Error archiving document', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setDocuments(documents.map((d, i) => 
+      i === index ? { ...d, is_archived: true, archived_at: new Date().toISOString() } : d
+    ));
+    toast({ title: 'Document archived' });
+  };
+
+  const restoreDocument = async (index: number) => {
+    const doc = documents[index];
+    if (!doc.id) return;
+    
+    const { error } = await supabase
+      .from('material_documents')
+      .update({
+        is_archived: false,
+        archived_at: null,
+      })
+      .eq('id', doc.id);
+    if (error) {
+      toast({ title: 'Error restoring document', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setDocuments(documents.map((d, i) => 
+      i === index ? { ...d, is_archived: false, archived_at: undefined } : d
+    ));
+    toast({ title: 'Document restored' });
+  };
+
   const updateDocument = (index: number, field: keyof DocumentUpload, value: string | undefined) => {
     setDocuments(documents.map((doc, i) => 
       i === index ? { ...doc, [field]: value } : doc
@@ -997,6 +1048,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         file_url: urlData.publicUrl,
         date_published: doc.date_published || null,
         date_reviewed: doc.date_reviewed || null,
+        expiry_date: doc.expiry_date || null,
       });
     }
     
@@ -1007,6 +1059,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         requirement_id: doc.requirement_id || null,
         date_published: doc.date_published || null,
         date_reviewed: doc.date_reviewed || null,
+        expiry_date: doc.expiry_date || null,
       }).eq('id', doc.id);
     }
   };
@@ -2358,16 +2411,28 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
               {/* Documents Tab */}
               <TabsContent value="documents" className="space-y-6 mt-4">
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">Material Documents</h4>
                       <p className="text-sm text-muted-foreground">
                         Upload specifications, COAs, SDS sheets, and other documents
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addDocument}>
-                      <Plus className="h-4 w-4 mr-1" /> Add Document
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowArchivedDocs(!showArchivedDocs)}
+                        className="text-muted-foreground"
+                      >
+                        {showArchivedDocs ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                        {showArchivedDocs ? 'Hide Archived' : 'Show Archived'}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={addDocument}>
+                        <Plus className="h-4 w-4 mr-1" /> Add Document
+                      </Button>
+                    </div>
                   </div>
 
                   {!material && (
@@ -2378,7 +2443,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </div>
                   )}
 
-                  {documents.length === 0 ? (
+                  {documents.filter(d => showArchivedDocs || !d.is_archived).length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>No documents uploaded.</p>
@@ -2469,7 +2534,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Date Published
@@ -2478,6 +2543,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       type="date"
                                       value={doc.date_published || ''}
                                       onChange={(e) => updateDocument(index, 'date_published', e.target.value || undefined)}
+                                      disabled={doc.is_archived}
                                     />
                                   </div>
                                   <div>
@@ -2488,19 +2554,64 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       type="date"
                                       value={doc.date_reviewed || ''}
                                       onChange={(e) => updateDocument(index, 'date_reviewed', e.target.value || undefined)}
+                                      disabled={doc.is_archived}
                                     />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Expiry Date
+                                    </label>
+                                    <Input
+                                      type="date"
+                                      value={doc.expiry_date || ''}
+                                      onChange={(e) => updateDocument(index, 'expiry_date', e.target.value || undefined)}
+                                      disabled={doc.is_archived}
+                                    />
+                                    {doc.expiry_date && (
+                                      <div className="mt-1">
+                                        <DocumentExpiryBadge expiryDate={doc.expiry_date} size="sm" />
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive shrink-0"
-                                onClick={() => removeDocument(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex flex-col gap-1">
+                                {!doc.isNew && !doc.is_archived && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    onClick={() => archiveDocument(index)}
+                                    title="Archive document"
+                                  >
+                                    <Archive className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {doc.is_archived && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    onClick={() => restoreDocument(index)}
+                                    title="Restore document"
+                                  >
+                                    <ArchiveRestore className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {!doc.is_archived && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive shrink-0"
+                                    onClick={() => removeDocument(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             {requirement && (
                               <p className="text-xs text-muted-foreground">
