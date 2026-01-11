@@ -214,60 +214,30 @@ export function useEndOfDayBlockers(date: string) {
   return useQuery({
     queryKey: ['end-of-day-blockers', date],
     queryFn: async () => {
-      // Fetch open receiving sessions for the day
-      const { data: receivingSessions, error: rsError } = await supabase
-        .from('po_receiving_sessions')
-        .select(`
-          id,
-          session_date,
-          status,
-          notes,
-          purchase_orders (
-            po_number,
-            suppliers (name)
-          )
-        `)
-        .eq('session_date', date)
-        .neq('status', 'completed');
+      // Fetch all data and filter client-side to avoid TypeScript recursion issues
+      const [rsResult, plResult, bolResult] = await Promise.all([
+        supabase.from('po_receiving_sessions').select('id, receiving_number, received_date, status, notes'),
+        supabase.from('production_lots').select('id, lot_number, production_date, status'),
+        supabase.from('bills_of_lading').select('id, bol_number, ship_date, status'),
+      ]);
 
-      if (rsError) throw rsError;
+      // Filter receiving sessions for the date that are not completed
+      const sessions = ((rsResult.data as Array<{ id: string; receiving_number: string; received_date: string; status: string; notes: string | null }>) || [])
+        .filter(r => r.received_date === date && r.status !== 'completed');
 
-      // Fetch open production lots for the day
-      const { data: productionLots, error: plError } = await supabase
-        .from('production_lots')
-        .select(`
-          id,
-          lot_number,
-          production_date,
-          status,
-          products (name)
-        `)
-        .eq('production_date', date)
-        .in('status', ['in_progress', 'pending', 'scheduled']);
+      // Filter production lots for the date that are in progress
+      const lots = ((plResult.data as Array<{ id: string; lot_number: string; production_date: string; status: string }>) || [])
+        .filter(r => r.production_date === date && ['in_progress', 'pending', 'scheduled'].includes(r.status));
 
-      if (plError) throw plError;
-
-      // Fetch open BOLs for the day
-      const { data: billsOfLading, error: bolError } = await supabase
-        .from('bills_of_lading')
-        .select(`
-          id,
-          bol_number,
-          ship_date,
-          status,
-          from_location:from_location_id (name),
-          to_location:to_location_id (name)
-        `)
-        .eq('ship_date', date)
-        .neq('status', 'delivered');
-
-      if (bolError) throw bolError;
+      // Filter BOLs for the date that are not delivered
+      const bols = ((bolResult.data as Array<{ id: string; bol_number: string; ship_date: string; status: string }>) || [])
+        .filter(r => r.ship_date === date && r.status !== 'delivered');
 
       return {
-        receivingSessions: receivingSessions || [],
-        productionLots: productionLots || [],
-        billsOfLading: billsOfLading || [],
-        totalBlockers: (receivingSessions?.length || 0) + (productionLots?.length || 0) + (billsOfLading?.length || 0),
+        receivingSessions: sessions,
+        productionLots: lots,
+        billsOfLading: bols,
+        totalBlockers: sessions.length + lots.length + bols.length,
       };
     },
   });
