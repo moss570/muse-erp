@@ -10,6 +10,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Form,
   FormControl,
   FormField,
@@ -169,6 +179,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showArchivedDocs, setShowArchivedDocs] = useState(false);
+  const [documentToArchive, setDocumentToArchive] = useState<{ index: number; name: string; isExpired: boolean } | null>(null);
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
@@ -970,6 +981,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     setDocuments(documents.filter((_, i) => i !== index));
   };
 
+  const handleArchiveClick = (index: number, docName: string, expiryDate: string | undefined) => {
+    const isExpired = expiryDate ? new Date(expiryDate) < new Date() : false;
+    if (isExpired) {
+      // If expired, archive directly
+      archiveDocument(index);
+    } else {
+      // Show confirmation dialog for non-expired documents
+      setDocumentToArchive({ index, name: docName, isExpired });
+    }
+  };
+
   const archiveDocument = async (index: number) => {
     const doc = documents[index];
     if (!doc.id) return;
@@ -1119,6 +1141,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -2456,7 +2479,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         const requirement = documentRequirements?.find(r => r.id === doc.requirement_id);
                         
                         return (
-                          <div key={index} className="p-4 border rounded-md bg-card space-y-4">
+                          <div key={index} className={`p-4 border rounded-md bg-card space-y-4 ${doc.is_archived ? 'opacity-60 bg-muted/30' : ''}`}>
+                            {doc.is_archived && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground pb-2 border-b">
+                                <Archive className="h-4 w-4" />
+                                <span>Archived{doc.archived_at ? ` on ${new Date(doc.archived_at).toLocaleDateString()}` : ''}</span>
+                              </div>
+                            )}
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
@@ -2468,6 +2497,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       value={doc.document_name}
                                       onChange={(e) => updateDocument(index, 'document_name', e.target.value)}
                                       placeholder="e.g., Product Specification"
+                                      disabled={!doc.isNew || doc.is_archived}
+                                      className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                                     />
                                   </div>
                                   <div>
@@ -2477,8 +2508,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                     <Select
                                       value={doc.requirement_id || '__none__'}
                                       onValueChange={(value) => updateDocument(index, 'requirement_id', value === '__none__' ? undefined : value)}
+                                      disabled={!doc.isNew || doc.is_archived}
                                     >
-                                      <SelectTrigger>
+                                      <SelectTrigger className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}>
                                         <SelectValue placeholder="Select type (optional)" />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -2496,43 +2528,41 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      {doc.file_path ? 'Replace File' : 'Upload File'}
+                                      {doc.file_path ? 'Current File' : 'Upload File'}
                                     </label>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        type="file"
-                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                                        onChange={(e) => handleFileUpload(e, index)}
-                                        disabled={!material}
-                                        className="flex-1"
-                                      />
-                                    </div>
+                                    {doc.file_path && !doc.file ? (
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="gap-1">
+                                          <FileText className="h-3 w-3" />
+                                          Uploaded
+                                        </Badge>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => downloadDocument(doc)}
+                                        >
+                                          <Download className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex gap-2">
+                                        <Input
+                                          type="file"
+                                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                          onChange={(e) => handleFileUpload(e, index)}
+                                          disabled={!material || !doc.isNew || doc.is_archived}
+                                          className={`flex-1 ${!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}`}
+                                        />
+                                      </div>
+                                    )}
                                     {doc.file && (
                                       <p className="text-xs text-green-600 mt-1">
                                         ✓ New file selected: {doc.file.name}
                                       </p>
                                     )}
                                   </div>
-                                  <div>
-                                    {doc.file_path && (
-                                      <div>
-                                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                          Current File
-                                        </label>
-                                        <div className="flex gap-2">
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => downloadDocument(doc)}
-                                            className="gap-1"
-                                          >
-                                            <Download className="h-3 w-3" /> Download
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                                  <div></div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">
@@ -2544,7 +2574,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       type="date"
                                       value={doc.date_published || ''}
                                       onChange={(e) => updateDocument(index, 'date_published', e.target.value || undefined)}
-                                      disabled={doc.is_archived}
+                                      disabled={!doc.isNew || doc.is_archived}
+                                      className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                                     />
                                   </div>
                                   <div>
@@ -2555,7 +2586,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       type="date"
                                       value={doc.date_reviewed || ''}
                                       onChange={(e) => updateDocument(index, 'date_reviewed', e.target.value || undefined)}
-                                      disabled={doc.is_archived}
+                                      disabled={!doc.isNew || doc.is_archived}
+                                      className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                                     />
                                   </div>
                                   <div>
@@ -2566,7 +2598,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       type="date"
                                       value={doc.expiry_date || ''}
                                       onChange={(e) => updateDocument(index, 'expiry_date', e.target.value || undefined)}
-                                      disabled={doc.is_archived}
+                                      disabled={!doc.isNew || doc.is_archived}
+                                      className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                                     />
                                     {doc.expiry_date && (
                                       <div className="mt-1">
@@ -2576,38 +2609,37 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex flex-col gap-1">
+                              <div className="flex flex-col gap-2">
                                 {!doc.isNew && !doc.is_archived && (
                                   <Button
                                     type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                    onClick={() => archiveDocument(index)}
-                                    title="Archive document"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleArchiveClick(index, doc.document_name, doc.expiry_date)}
                                   >
-                                    <Archive className="h-4 w-4" />
+                                    <Archive className="h-4 w-4 mr-1" />
+                                    Archive
                                   </Button>
                                 )}
                                 {doc.is_archived && (
                                   <Button
                                     type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => restoreDocument(index)}
-                                    title="Restore document"
                                   >
-                                    <ArchiveRestore className="h-4 w-4" />
+                                    <ArchiveRestore className="h-4 w-4 mr-1" />
+                                    Restore
                                   </Button>
                                 )}
-                                {!doc.is_archived && (
+                                {doc.isNew && (
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-destructive shrink-0"
                                     onClick={() => removeDocument(index)}
+                                    title="Remove"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -2735,5 +2767,31 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         />
       </DialogContent>
     </Dialog>
+
+    {/* Archive Non-Expired Document Confirmation Dialog */}
+    <AlertDialog open={!!documentToArchive} onOpenChange={(open) => !open && setDocumentToArchive(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Archive Document?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This document has not expired yet. Are you sure you want to archive "{documentToArchive?.name || 'this document'}"?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>No</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={() => {
+              if (documentToArchive) {
+                archiveDocument(documentToArchive.index);
+              }
+              setDocumentToArchive(null);
+            }}
+          >
+            Yes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }

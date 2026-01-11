@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -18,8 +20,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -29,8 +40,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, FileText, Download, Trash2 } from 'lucide-react';
+import { Plus, FileText, Download, Archive, ArchiveRestore } from 'lucide-react';
 import { format } from 'date-fns';
+import { DocumentExpiryBadge } from '@/components/approval';
 
 interface EmployeeDocumentsProps {
   employeeId: string;
@@ -52,6 +64,8 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
   const [documentName, setDocumentName] = useState('');
   const [description, setDescription] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [documentToArchive, setDocumentToArchive] = useState<{ id: string; name: string; isExpired: boolean } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -101,20 +115,50 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
     },
   });
 
-  const deleteDocument = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('employee_documents')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employee-documents', employeeId] });
-      toast({ title: 'Document deleted' });
-    },
-  });
+  const handleArchiveClick = (docId: string, docName: string, expiryDateStr: string | null) => {
+    const isExpired = expiryDateStr ? new Date(expiryDateStr) < new Date() : false;
+    if (isExpired) {
+      archiveDocument(docId);
+    } else {
+      setDocumentToArchive({ id: docId, name: docName, isExpired });
+    }
+  };
+
+  const archiveDocument = async (docId: string) => {
+    const { error } = await supabase
+      .from('employee_documents')
+      .update({ 
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+      } as any)
+      .eq('id', docId);
+    
+    if (error) {
+      toast({ title: 'Error archiving document', description: error.message, variant: 'destructive' });
+      return;
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['employee-documents', employeeId] });
+    toast({ title: 'Document archived' });
+  };
+
+  const restoreDocument = async (docId: string) => {
+    const { error } = await supabase
+      .from('employee_documents')
+      .update({ 
+        is_archived: false,
+        archived_at: null,
+      } as any)
+      .eq('id', docId);
+    
+    if (error) {
+      toast({ title: 'Error restoring document', description: error.message, variant: 'destructive' });
+      return;
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['employee-documents', employeeId] });
+    toast({ title: 'Document restored' });
+  };
 
   const resetForm = () => {
     setDocumentType('');
@@ -127,25 +171,36 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
     return DOCUMENT_TYPES.find(t => t.value === type)?.label || type;
   };
 
-  const isExpired = (expiryDate: string | null) => {
-    if (!expiryDate) return false;
-    return new Date(expiryDate) < new Date();
-  };
+  // Filter documents based on archived status
+  const filteredDocuments = documents?.filter(doc => {
+    const isArchived = (doc as any).is_archived === true;
+    return showArchived || !isArchived;
+  }) || [];
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold">Documents</CardTitle>
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Document
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-archived"
+                checked={showArchived}
+                onCheckedChange={setShowArchived}
+              />
+              <Label htmlFor="show-archived" className="text-sm">Show Archived</Label>
+            </div>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Document
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
-          ) : documents && documents.length > 0 ? (
+          ) : filteredDocuments.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -154,65 +209,88 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
                   <TableHead>Status</TableHead>
                   <TableHead>Expiry Date</TableHead>
                   <TableHead>Added</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {documents.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.document_name}</p>
-                          {doc.description && (
-                            <p className="text-xs text-muted-foreground">{doc.description}</p>
+                {filteredDocuments.map((doc) => {
+                  const isArchived = (doc as any).is_archived === true;
+                  const archivedAt = (doc as any).archived_at;
+                  return (
+                    <TableRow key={doc.id} className={isArchived ? 'opacity-60 bg-muted/30' : ''}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{doc.document_name}</p>
+                            {doc.description && (
+                              <p className="text-xs text-muted-foreground">{doc.description}</p>
+                            )}
+                            {isArchived && archivedAt && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Archive className="h-3 w-3" />
+                                <span>Archived on {format(new Date(archivedAt), 'MMM d, yyyy')}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getDocumentTypeLabel(doc.document_type)}</TableCell>
+                      <TableCell>
+                        {isArchived ? (
+                          <Badge variant="outline" className="gap-1">
+                            <Archive className="h-3 w-3" />
+                            Archived
+                          </Badge>
+                        ) : doc.is_signed ? (
+                          <Badge className="bg-green-100 text-green-800">Signed</Badge>
+                        ) : doc.is_required ? (
+                          <Badge variant="destructive">Required</Badge>
+                        ) : (
+                          <Badge variant="outline">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {doc.expiry_date ? (
+                          <DocumentExpiryBadge expiryDate={doc.expiry_date} size="sm" />
+                        ) : (
+                          <span className="text-muted-foreground">No expiry</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(doc.created_at), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {doc.file_url && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!isArchived ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleArchiveClick(doc.id, doc.document_name, doc.expiry_date)}
+                            >
+                              <Archive className="h-4 w-4 mr-1" />
+                              Archive
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => restoreDocument(doc.id)}
+                            >
+                              <ArchiveRestore className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
                           )}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getDocumentTypeLabel(doc.document_type)}</TableCell>
-                    <TableCell>
-                      {doc.is_signed ? (
-                        <Badge className="bg-green-100 text-green-800">Signed</Badge>
-                      ) : doc.is_required ? (
-                        <Badge variant="destructive">Required</Badge>
-                      ) : (
-                        <Badge variant="outline">Pending</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {doc.expiry_date ? (
-                        <span className={isExpired(doc.expiry_date) ? 'text-destructive' : ''}>
-                          {format(new Date(doc.expiry_date), 'MMM d, yyyy')}
-                          {isExpired(doc.expiry_date) && ' (Expired)'}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">No expiry</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(doc.created_at), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {doc.file_url && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => deleteDocument.mutate(doc.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -289,6 +367,31 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Archive Non-Expired Document Confirmation Dialog */}
+      <AlertDialog open={!!documentToArchive} onOpenChange={(open) => !open && setDocumentToArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This document has not expired yet. Are you sure you want to archive "{documentToArchive?.name || 'this document'}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (documentToArchive) {
+                  archiveDocument(documentToArchive.id);
+                }
+                setDocumentToArchive(null);
+              }}
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
