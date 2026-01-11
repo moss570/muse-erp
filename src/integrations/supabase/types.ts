@@ -784,6 +784,7 @@ export type Database = {
       }
       employee_documents: {
         Row: {
+          archived_at: string | null
           created_at: string
           description: string | null
           document_name: string
@@ -793,6 +794,7 @@ export type Database = {
           file_path: string | null
           file_url: string | null
           id: string
+          is_archived: boolean | null
           is_required: boolean | null
           is_signed: boolean | null
           signed_at: string | null
@@ -800,6 +802,7 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           document_name: string
@@ -809,6 +812,7 @@ export type Database = {
           file_path?: string | null
           file_url?: string | null
           id?: string
+          is_archived?: boolean | null
           is_required?: boolean | null
           is_signed?: boolean | null
           signed_at?: string | null
@@ -816,6 +820,7 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           document_name?: string
@@ -825,6 +830,7 @@ export type Database = {
           file_path?: string | null
           file_url?: string | null
           id?: string
+          is_archived?: boolean | null
           is_required?: boolean | null
           is_signed?: boolean | null
           signed_at?: string | null
