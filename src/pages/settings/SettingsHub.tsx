@@ -23,6 +23,9 @@ import {
   FileStack,
   Building2,
   Tag,
+  DollarSign,
+  BookOpen,
+  CalendarCheck,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -126,6 +129,35 @@ const settingsCategories: SettingCategory[] = [
         href: '/settings/quality-tests',
         icon: Scale,
         status: 'coming-soon',
+      },
+    ],
+  },
+  {
+    title: 'Financial Settings',
+    description: 'Fixed costs, GL accounts, and period management',
+    icon: DollarSign,
+    color: 'bg-emerald-500/10 text-emerald-500',
+    items: [
+      {
+        title: 'Fixed Costs',
+        description: 'Manage recurring costs and overhead rates',
+        href: '/settings/fixed-costs',
+        icon: DollarSign,
+        status: 'active',
+      },
+      {
+        title: 'GL Accounts',
+        description: 'Configure chart of accounts and Xero mapping',
+        href: '/settings/gl-accounts',
+        icon: BookOpen,
+        status: 'active',
+      },
+      {
+        title: 'Period Close',
+        description: 'Manage accounting periods and close process',
+        href: '/settings/period-close',
+        icon: CalendarCheck,
+        status: 'active',
       },
     ],
   },

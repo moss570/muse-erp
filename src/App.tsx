@@ -83,6 +83,9 @@ const App = () => (
             <Route path="/settings/templates" element={<AppLayout><DocumentTemplatesPage /></AppLayout>} />
             <Route path="/settings/labels" element={<AppLayout><LabelTemplates /></AppLayout>} />
             <Route path="/settings/company" element={<AppLayout><CompanySettings /></AppLayout>} />
+            <Route path="/settings/fixed-costs" element={<AppLayout><FixedCosts /></AppLayout>} />
+            <Route path="/settings/gl-accounts" element={<AppLayout><GLAccounts /></AppLayout>} />
+            <Route path="/settings/period-close" element={<AppLayout><PeriodClose /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
@@ -128,13 +131,14 @@ const App = () => (
             <Route path="/hr/team/:id" element={<AppLayout><EmployeeDetail /></AppLayout>} />
             <Route path="/employees/directory" element={<AppLayout><TeamRoster /></AppLayout>} />
             <Route path="/employees/*" element={<AppLayout><TeamRoster /></AppLayout>} />
+            <Route path="/reports/profit-loss" element={<AppLayout><ProfitLoss /></AppLayout>} />
             <Route
               path="/reports/*"
               element={
                 <AppLayout>
                   <div className="text-center py-12">
                     <h2 className="text-2xl font-bold mb-2">Reports & KPIs Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 3</p>
+                    <p className="text-muted-foreground">Coming soon</p>
                   </div>
                 </AppLayout>
               }
