@@ -40,6 +40,38 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authentication check - verify JWT token
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - missing authentication token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Create user client to verify authentication
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the user's token
+    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - invalid authentication token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { poId, toEmails, ccEmails, bccEmails, subject, message, templateId }: SendPOEmailRequest = await req.json();
     
     console.log("Request data:", { poId, toEmails, ccEmails, subject, templateId });
@@ -52,10 +84,25 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Authorization check - verify user has access to this PO using RLS
+    const { data: poAccessCheck, error: accessError } = await userClient
+      .from("purchase_orders")
+      .select("id")
+      .eq("id", poId)
+      .single();
+
+    if (accessError || !poAccessCheck) {
+      console.error("PO access denied for user:", user.id, "PO:", poId, "Error:", accessError?.message);
+      return new Response(
+        JSON.stringify({ error: "Access denied - you don't have permission to access this purchase order" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Authorization verified - user has access to PO:", poId);
+
+    // Create service role client for full data access (only after auth verification)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch company settings
     const { data: companySettings } = await supabase
