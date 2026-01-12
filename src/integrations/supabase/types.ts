@@ -503,6 +503,132 @@ export type Database = {
         }
         Relationships: []
       }
+      disassembly_records: {
+        Row: {
+          container_status: string
+          conversion_factor: number
+          converted_quantity: number
+          converted_unit_id: string
+          created_at: string
+          emptied_at: string | null
+          emptied_by: string | null
+          id: string
+          label_printed: boolean | null
+          label_printed_at: string | null
+          location_id: string
+          material_id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          original_purchase_unit_id: string
+          original_quantity: number
+          parent_receiving_lot_id: string
+          remaining_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          container_status?: string
+          conversion_factor: number
+          converted_quantity: number
+          converted_unit_id: string
+          created_at?: string
+          emptied_at?: string | null
+          emptied_by?: string | null
+          id?: string
+          label_printed?: boolean | null
+          label_printed_at?: string | null
+          location_id: string
+          material_id: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          original_purchase_unit_id: string
+          original_quantity: number
+          parent_receiving_lot_id: string
+          remaining_quantity: number
+          updated_at?: string
+        }
+        Update: {
+          container_status?: string
+          conversion_factor?: number
+          converted_quantity?: number
+          converted_unit_id?: string
+          created_at?: string
+          emptied_at?: string | null
+          emptied_by?: string | null
+          id?: string
+          label_printed?: boolean | null
+          label_printed_at?: string | null
+          location_id?: string
+          material_id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          original_purchase_unit_id?: string
+          original_quantity?: number
+          parent_receiving_lot_id?: string
+          remaining_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disassembly_records_converted_unit_id_fkey"
+            columns: ["converted_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_emptied_by_fkey"
+            columns: ["emptied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_original_purchase_unit_id_fkey"
+            columns: ["original_purchase_unit_id"]
+            isOneToOne: false
+            referencedRelation: "material_purchase_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_parent_receiving_lot_id_fkey"
+            columns: ["parent_receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "disassembly_records_parent_receiving_lot_id_fkey"
+            columns: ["parent_receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_requirements: {
         Row: {
           areas: string[]
@@ -1482,6 +1608,439 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_adjustments: {
+        Row: {
+          adjusted_by: string | null
+          adjustment_type: string
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          disassembly_record_id: string | null
+          id: string
+          location_id: string
+          notes: string | null
+          production_lot_id: string | null
+          quantity_adjusted: number
+          quantity_after: number
+          quantity_before: number
+          reason_code: string
+          receiving_lot_id: string | null
+          requires_approval: boolean | null
+          unit_id: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          adjustment_type: string
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          disassembly_record_id?: string | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          production_lot_id?: string | null
+          quantity_adjusted: number
+          quantity_after: number
+          quantity_before: number
+          reason_code: string
+          receiving_lot_id?: string | null
+          requires_approval?: boolean | null
+          unit_id: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          adjustment_type?: string
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          disassembly_record_id?: string | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          production_lot_id?: string | null
+          quantity_adjusted?: number
+          quantity_after?: number
+          quantity_before?: number
+          reason_code?: string
+          receiving_lot_id?: string | null
+          requires_approval?: boolean | null
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_adjusted_by_fkey"
+            columns: ["adjusted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_disassembly_record_id_fkey"
+            columns: ["disassembly_record_id"]
+            isOneToOne: false
+            referencedRelation: "disassembly_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movement_items: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string | null
+          movement_id: string
+          product_id: string | null
+          production_lot_id: string | null
+          quantity_moved: number | null
+          quantity_requested: number
+          receiving_lot_id: string | null
+          scanned_at: string | null
+          scanned_by: string | null
+          scanned_verified: boolean | null
+          unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          movement_id: string
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity_moved?: number | null
+          quantity_requested: number
+          receiving_lot_id?: string | null
+          scanned_at?: string | null
+          scanned_by?: string | null
+          scanned_verified?: boolean | null
+          unit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          movement_id?: string
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity_moved?: number | null
+          quantity_requested?: number
+          receiving_lot_id?: string | null
+          scanned_at?: string | null
+          scanned_by?: string | null
+          scanned_verified?: boolean | null
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movement_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movement_items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          destination_location_id: string
+          id: string
+          movement_type: string
+          notes: string | null
+          requested_at: string
+          requested_by: string | null
+          source_location_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          destination_location_id: string
+          id?: string
+          movement_type: string
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          source_location_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          destination_location_id?: string
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          source_location_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_destination_location_id_fkey"
+            columns: ["destination_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          from_location_id: string | null
+          id: string
+          material_id: string | null
+          notes: string | null
+          performed_by: string | null
+          product_id: string | null
+          production_lot_id: string | null
+          quantity: number
+          reason_code: string | null
+          receiving_lot_id: string | null
+          reference_id: string | null
+          reference_type: string | null
+          to_location_id: string | null
+          transaction_type: string
+          unit_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          from_location_id?: string | null
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity: number
+          reason_code?: string | null
+          receiving_lot_id?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          to_location_id?: string | null
+          transaction_type: string
+          unit_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          from_location_id?: string | null
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity?: number
+          reason_code?: string | null
+          receiving_lot_id?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          to_location_id?: string | null
+          transaction_type?: string
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_additional_costs: {
         Row: {
           allocated_to_item_id: string | null
@@ -1865,6 +2424,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_order_invoices"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landed_cost_allocations_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
           },
           {
             foreignKeyName: "landed_cost_allocations_receiving_lot_id_fkey"
@@ -3010,6 +3576,13 @@ export type Database = {
             foreignKeyName: "po_receiving_items_receiving_lot_id_fkey"
             columns: ["receiving_lot_id"]
             isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "po_receiving_items_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
             referencedRelation: "receiving_lots"
             referencedColumns: ["id"]
           },
@@ -3305,6 +3878,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "production_lots"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lot_materials_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
           },
           {
             foreignKeyName: "production_lot_materials_receiving_lot_id_fkey"
@@ -4007,6 +4587,13 @@ export type Database = {
             foreignKeyName: "recall_affected_lots_receiving_lot_id_fkey"
             columns: ["receiving_lot_id"]
             isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "recall_affected_lots_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
             referencedRelation: "receiving_lots"
             referencedColumns: ["id"]
           },
@@ -4148,6 +4735,13 @@ export type Database = {
             foreignKeyName: "receiving_hold_log_receiving_lot_id_fkey"
             columns: ["receiving_lot_id"]
             isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "receiving_hold_log_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
             referencedRelation: "receiving_lots"
             referencedColumns: ["id"]
           },
@@ -4212,13 +4806,17 @@ export type Database = {
       }
       receiving_lots: {
         Row: {
+          container_status: string | null
           cost_finalized: boolean | null
           cost_per_base_unit: number | null
           cost_total: number | null
           created_at: string
+          current_location_id: string | null
+          current_quantity: number | null
           expiry_date: string | null
           id: string
           internal_lot_number: string
+          last_transaction_at: string | null
           location_id: string | null
           material_id: string
           notes: string | null
@@ -4237,13 +4835,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          container_status?: string | null
           cost_finalized?: boolean | null
           cost_per_base_unit?: number | null
           cost_total?: number | null
           created_at?: string
+          current_location_id?: string | null
+          current_quantity?: number | null
           expiry_date?: string | null
           id?: string
           internal_lot_number: string
+          last_transaction_at?: string | null
           location_id?: string | null
           material_id: string
           notes?: string | null
@@ -4262,13 +4864,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          container_status?: string | null
           cost_finalized?: boolean | null
           cost_per_base_unit?: number | null
           cost_total?: number | null
           created_at?: string
+          current_location_id?: string | null
+          current_quantity?: number | null
           expiry_date?: string | null
           id?: string
           internal_lot_number?: string
+          last_transaction_at?: string | null
           location_id?: string | null
           material_id?: string
           notes?: string | null
@@ -4287,6 +4893,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_receiving_lots_current_location"
+            columns: ["current_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receiving_lots_location_id_fkey"
             columns: ["location_id"]
@@ -5034,6 +5647,34 @@ export type Database = {
           uploaded_by: string | null
         }
         Relationships: []
+      }
+      inventory_by_lot_location: {
+        Row: {
+          container_status: string | null
+          current_quantity: number | null
+          expiry_date: string | null
+          expiry_status: string | null
+          internal_lot_number: string | null
+          location_id: string | null
+          location_name: string | null
+          material_code: string | null
+          material_id: string | null
+          material_name: string | null
+          original_quantity: number | null
+          receiving_lot_id: string | null
+          supplier_lot_number: string | null
+          unit_code: string | null
+          unit_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_lots_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qa_pending_items: {
         Row: {
