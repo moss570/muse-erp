@@ -59,14 +59,32 @@ export default function Receiving() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [preSelectedPOId, setPreSelectedPOId] = useState<string | null>(null);
 
-  // Check for ?po= query parameter to auto-open dialog
+  // Check for ?po= or ?lot= query parameters
   useEffect(() => {
     const poId = searchParams.get('po');
+    const lotId = searchParams.get('lot');
+    
     if (poId) {
       setPreSelectedPOId(poId);
       setIsNewSessionOpen(true);
       // Clear the query param from URL
       setSearchParams({});
+    } else if (lotId) {
+      // Find the session that contains this lot and open it
+      const findSessionForLot = async () => {
+        const { data } = await supabase
+          .from('po_receiving_items')
+          .select('receiving_session_id')
+          .eq('receiving_lot_id', lotId)
+          .single();
+        
+        if (data?.receiving_session_id) {
+          setSelectedSessionId(data.receiving_session_id);
+        }
+        // Clear the query param
+        setSearchParams({});
+      };
+      findSessionForLot();
     }
   }, [searchParams, setSearchParams]);
 

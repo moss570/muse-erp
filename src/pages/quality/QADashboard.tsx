@@ -35,13 +35,13 @@ import { DocumentExpirationBadge } from '@/components/approval/DocumentExpiratio
 import { cn } from '@/lib/utils';
 
 // Map table names to display names and routes
-const tableConfig: Record<string, { label: string; route: string }> = {
-  materials: { label: 'Material', route: '/inventory/materials' },
-  suppliers: { label: 'Supplier', route: '/purchasing/suppliers' },
-  products: { label: 'Product', route: '/inventory/products' },
+const tableConfig: Record<string, { label: string; route: string; paramName?: string }> = {
+  materials: { label: 'Material', route: '/inventory/materials', paramName: 'edit' },
+  suppliers: { label: 'Supplier', route: '/purchasing/suppliers', paramName: 'edit' },
+  products: { label: 'Product', route: '/inventory/products', paramName: 'edit' },
   production_lots: { label: 'Production Lot', route: '/manufacturing/batches' },
-  po_receiving_sessions: { label: 'Receiving', route: '/purchasing/receiving' },
-  receiving_lots: { label: 'Receiving Lot', route: '/inventory/material-inventory' },
+  po_receiving_sessions: { label: 'Receiving', route: '/purchasing/receiving', paramName: 'session' },
+  receiving_lots: { label: 'Receiving Lot', route: '/purchasing/receiving', paramName: 'lot' },
 };
 
 export default function QADashboard() {
@@ -224,7 +224,12 @@ export default function QADashboard() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => navigate(tableConfig[tableName]?.route || '/')}
+                                  onClick={() => {
+                                    const config = tableConfig[tableName];
+                                    const route = config?.route || '/';
+                                    const param = config?.paramName;
+                                    navigate(param ? `${route}?${param}=${item.id}` : route);
+                                  }}
                                 >
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
