@@ -36,16 +36,18 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Tags,
 } from 'lucide-react';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 
-type EntityType = 'materials' | 'products' | 'suppliers' | 'customers';
+type EntityType = 'listed_material_names' | 'materials' | 'products' | 'suppliers' | 'customers';
 
 interface ImportResult {
   created: number;
+  updated: number;
   skipped: number;
   errors: string[];
-  preview: Array<{ row: number; data: Record<string, unknown>; status: 'new' | 'duplicate' | 'error'; message?: string }>;
+  preview: Array<{ row: number; data: Record<string, unknown>; status: 'new' | 'update' | 'duplicate' | 'error'; message?: string; existingId?: string }>;
 }
 
 const ENTITY_CONFIG: Record<EntityType, { 
@@ -54,7 +56,16 @@ const ENTITY_CONFIG: Record<EntityType, {
   color: string;
   uniqueField: string;
   fields: string[];
+  supportsUpdate?: boolean;
 }> = {
+  listed_material_names: {
+    label: 'Listed Material Names',
+    icon: Tags,
+    color: 'bg-amber-500/10 text-amber-500',
+    uniqueField: 'code',
+    fields: ['code', 'name', 'description', 'is_active'],
+    supportsUpdate: true,
+  },
   materials: {
     label: 'Materials',
     icon: Package,
@@ -166,7 +177,7 @@ function parseCSV(text: string): Record<string, string>[] {
 }
 
 export default function ImportExport() {
-  const [activeTab, setActiveTab] = useState<EntityType>('materials');
+  const [activeTab, setActiveTab] = useState<EntityType>('listed_material_names');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportResult | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -178,13 +189,15 @@ export default function ImportExport() {
   const { data: counts } = useQuery({
     queryKey: ['entity-counts'],
     queryFn: async () => {
-      const [materials, products, suppliers, customers] = await Promise.all([
+      const [listedMaterialNames, materials, products, suppliers, customers] = await Promise.all([
+        supabase.from('listed_material_names').select('id', { count: 'exact', head: true }),
         supabase.from('materials').select('id', { count: 'exact', head: true }),
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('suppliers').select('id', { count: 'exact', head: true }),
         supabase.from('customers').select('id', { count: 'exact', head: true }),
       ]);
       return {
+        listed_material_names: listedMaterialNames.count || 0,
         materials: materials.count || 0,
         products: products.count || 0,
         suppliers: suppliers.count || 0,
@@ -204,19 +217,30 @@ export default function ImportExport() {
     const rows = parseCSV(text);
     const config = ENTITY_CONFIG[activeTab];
     
-    // Check for duplicates
+    // Check for existing records
     const { data: existing } = await supabase
       .from(activeTab)
-      .select(config.uniqueField);
+      .select('*');
     
-    const existingCodes = new Set((existing || []).map(e => e[config.uniqueField as keyof typeof e]));
+    const existingMap = new Map<string, string>();
+    (existing || []).forEach((e: Record<string, unknown>) => {
+      const uniqueValue = e[config.uniqueField] as string;
+      if (uniqueValue) {
+        existingMap.set(uniqueValue, e.id as string);
+      }
+    });
     
     const preview: ImportResult['preview'] = rows.map((row, idx) => {
       const code = row[config.uniqueField];
       if (!code) {
         return { row: idx + 2, data: row, status: 'error' as const, message: `Missing ${config.uniqueField}` };
       }
-      if (existingCodes.has(code)) {
+      const existingId = existingMap.get(code);
+      if (existingId) {
+        // For entities that support updates, mark as update; otherwise skip
+        if (config.supportsUpdate) {
+          return { row: idx + 2, data: row, status: 'update' as const, existingId, message: 'Will update existing' };
+        }
         return { row: idx + 2, data: row, status: 'duplicate' as const, message: `${config.uniqueField} already exists` };
       }
       return { row: idx + 2, data: row, status: 'new' as const };
@@ -224,6 +248,7 @@ export default function ImportExport() {
     
     setImportPreview({
       created: preview.filter(p => p.status === 'new').length,
+      updated: preview.filter(p => p.status === 'update').length,
       skipped: preview.filter(p => p.status === 'duplicate').length,
       errors: preview.filter(p => p.status === 'error').map(p => `Row ${p.row}: ${p.message}`),
       preview,
@@ -236,14 +261,15 @@ export default function ImportExport() {
     
     setIsImporting(true);
     const config = ENTITY_CONFIG[activeTab];
-    const rowsToImport = importPreview.preview
+    
+    // Prepare rows to create
+    const rowsToCreate = importPreview.preview
       .filter(p => p.status === 'new')
       .map(p => {
         const data: Record<string, unknown> = {};
         config.fields.forEach(field => {
           const value = p.data[field];
           if (value !== undefined && value !== '') {
-            // Convert boolean strings
             if (field === 'is_active' || field === 'tax_exempt') {
               data[field] = String(value).toLowerCase() === 'true' || value === '1';
             } else if (['min_stock_level', 'cost_per_base_unit', 'units_per_case', 'case_weight_kg', 'credit_limit'].includes(field)) {
@@ -255,11 +281,31 @@ export default function ImportExport() {
         });
         return data;
       });
+
+    // Prepare rows to update (only non-empty values)
+    const rowsToUpdate = importPreview.preview
+      .filter(p => p.status === 'update' && p.existingId)
+      .map(p => {
+        const data: Record<string, unknown> = {};
+        config.fields.forEach(field => {
+          const value = p.data[field];
+          // Only include non-empty values for updates
+          if (value !== undefined && value !== '') {
+            if (field === 'is_active' || field === 'tax_exempt') {
+              data[field] = String(value).toLowerCase() === 'true' || value === '1';
+            } else if (['min_stock_level', 'cost_per_base_unit', 'units_per_case', 'case_weight_kg', 'credit_limit'].includes(field)) {
+              data[field] = parseFloat(String(value)) || null;
+            } else {
+              data[field] = value;
+            }
+          }
+        });
+        return { id: p.existingId!, data };
+      });
     
     try {
       // For materials and products, we need to handle the unit_id requirement
       if (activeTab === 'materials') {
-        // Get default base unit
         const { data: defaultUnit } = await supabase
           .from('units_of_measure')
           .select('id')
@@ -268,7 +314,7 @@ export default function ImportExport() {
           .single();
         
         if (defaultUnit) {
-          rowsToImport.forEach(row => {
+          rowsToCreate.forEach(row => {
             if (!row.base_unit_id) {
               row.base_unit_id = defaultUnit.id;
             }
@@ -277,7 +323,6 @@ export default function ImportExport() {
       }
       
       if (activeTab === 'products') {
-        // Get default unit
         const { data: defaultUnit } = await supabase
           .from('units_of_measure')
           .select('id')
@@ -285,7 +330,7 @@ export default function ImportExport() {
           .single();
         
         if (defaultUnit) {
-          rowsToImport.forEach(row => {
+          rowsToCreate.forEach(row => {
             if (!row.unit_id) {
               row.unit_id = defaultUnit.id;
             }
@@ -293,18 +338,33 @@ export default function ImportExport() {
         }
       }
 
-      // Type assertion for Supabase insert
-      const { error } = await supabase.from(activeTab).insert(rowsToImport as never[]);
+      // Insert new records
+      if (rowsToCreate.length > 0) {
+        const { error } = await supabase.from(activeTab).insert(rowsToCreate as never[]);
+        if (error) throw error;
+      }
+
+      // Update existing records
+      for (const item of rowsToUpdate) {
+        const { error } = await supabase
+          .from(activeTab)
+          .update(item.data as never)
+          .eq('id', item.id);
+        if (error) throw error;
+      }
       
-      if (error) throw error;
+      const messages: string[] = [];
+      if (rowsToCreate.length > 0) messages.push(`Created ${rowsToCreate.length}`);
+      if (rowsToUpdate.length > 0) messages.push(`Updated ${rowsToUpdate.length}`);
       
       toast({ 
         title: 'Import successful', 
-        description: `Created ${rowsToImport.length} ${config.label.toLowerCase()}` 
+        description: messages.join(', ') + ` ${config.label.toLowerCase()}` 
       });
       
       queryClient.invalidateQueries({ queryKey: [activeTab] });
       queryClient.invalidateQueries({ queryKey: ['entity-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
       setIsPreviewOpen(false);
       setSelectedFile(null);
       setImportPreview(null);
@@ -344,7 +404,7 @@ export default function ImportExport() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as EntityType)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           {Object.entries(ENTITY_CONFIG).map(([key, config]) => {
             const Icon = config.icon;
             return (
@@ -450,9 +510,12 @@ export default function ImportExport() {
                     </div>
                     <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="font-medium">Duplicate Detection</p>
+                      <p className="font-medium">{config.supportsUpdate ? 'Smart Import' : 'Duplicate Detection'}</p>
                       <p>
-                        Records with existing <code className="text-xs bg-muted px-1 rounded">{config.uniqueField}</code> will be skipped
+                        {config.supportsUpdate 
+                          ? <>Records with existing <code className="text-xs bg-muted px-1 rounded">{config.uniqueField}</code> will be updated (only non-empty values)</>
+                          : <>Records with existing <code className="text-xs bg-muted px-1 rounded">{config.uniqueField}</code> will be skipped</>
+                        }
                       </p>
                     </div>
                   </CardContent>
@@ -469,26 +532,36 @@ export default function ImportExport() {
           <DialogHeader>
             <DialogTitle>Import Preview</DialogTitle>
             <DialogDescription>
-              Review the data before importing. Duplicates will be skipped.
+              Review the data before importing. {ENTITY_CONFIG[activeTab].supportsUpdate ? 'Existing records will be updated with non-empty values.' : 'Duplicates will be skipped.'}
             </DialogDescription>
           </DialogHeader>
           
           {importPreview && (
             <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
               {/* Summary */}
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <span className="text-sm">
                     <strong>{importPreview.created}</strong> new records
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm">
-                    <strong>{importPreview.skipped}</strong> duplicates (will skip)
-                  </span>
-                </div>
+                {importPreview.updated > 0 && (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm">
+                      <strong>{importPreview.updated}</strong> updates
+                    </span>
+                  </div>
+                )}
+                {importPreview.skipped > 0 && (
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm">
+                      <strong>{importPreview.skipped}</strong> duplicates (will skip)
+                    </span>
+                  </div>
+                )}
                 {importPreview.errors.length > 0 && (
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-destructive" />
@@ -516,6 +589,9 @@ export default function ImportExport() {
                         <TableCell>
                           {item.status === 'new' && (
                             <Badge className="bg-green-100 text-green-800 border-green-200">New</Badge>
+                          )}
+                          {item.status === 'update' && (
+                            <Badge className="bg-blue-100 text-blue-800 border-blue-200">Update</Badge>
                           )}
                           {item.status === 'duplicate' && (
                             <Badge className="bg-amber-100 text-amber-800 border-amber-200">Skip</Badge>
@@ -546,9 +622,9 @@ export default function ImportExport() {
             </Button>
             <Button 
               onClick={handleImport} 
-              disabled={isImporting || !importPreview?.created}
+              disabled={isImporting || (!importPreview?.created && !importPreview?.updated)}
             >
-              {isImporting ? 'Importing...' : `Import ${importPreview?.created || 0} Records`}
+              {isImporting ? 'Importing...' : `Import ${(importPreview?.created || 0) + (importPreview?.updated || 0)} Records`}
             </Button>
           </DialogFooter>
         </DialogContent>
