@@ -112,6 +112,7 @@ export function LinkedMaterialsDialog({
       queryClient.invalidateQueries({ queryKey: ['materials-for-linking'] });
       queryClient.invalidateQueries({ queryKey: ['material-listed-links'] });
       queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
+      queryClient.invalidateQueries({ queryKey: ['listed-material-counts'] });
       toast({ title: 'Materials linked successfully' });
       setSelectedMaterials(new Set());
     },
@@ -136,6 +137,7 @@ export function LinkedMaterialsDialog({
       queryClient.invalidateQueries({ queryKey: ['materials-for-linking'] });
       queryClient.invalidateQueries({ queryKey: ['material-listed-links'] });
       queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
+      queryClient.invalidateQueries({ queryKey: ['listed-material-counts'] });
       toast({ title: 'Material unlinked' });
     },
     onError: (error: Error) => {
