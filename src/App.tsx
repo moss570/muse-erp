@@ -44,6 +44,8 @@ import ProductionExecution from "./pages/manufacturing/ProductionExecution";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
 import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
+import TimeClockKiosk from "./pages/hr/TimeClockKiosk";
+import PayrollExport from "./pages/hr/PayrollExport";
 
 const queryClient = new QueryClient();
 
@@ -182,15 +184,8 @@ const App = () => (
                 </AppLayout>
               }
             />
-            <Route
-              path="/kiosk/timeclock"
-              element={
-                <div className="text-center py-12">
-                  <h2 className="text-2xl font-bold mb-2">Time Clock Kiosk</h2>
-                  <p className="text-muted-foreground">Coming in Phase 2</p>
-                </div>
-              }
-            />
+            <Route path="/kiosk/timeclock" element={<TimeClockKiosk />} />
+            <Route path="/hr/payroll" element={<AppLayout><PayrollExport /></AppLayout>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
