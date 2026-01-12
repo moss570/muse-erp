@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,11 +89,10 @@ export default function ThreePLDashboard() {
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Warehouse className="h-8 w-8" />
               3PL Dashboard
@@ -357,21 +355,20 @@ export default function ThreePLDashboard() {
             </TabsContent>
           </Tabs>
         )}
+
+        {/* Pick Request Dialog */}
+        <PickRequestDialog
+          open={showPickRequestDialog}
+          onOpenChange={setShowPickRequestDialog}
+          locationId={selectedLocationId || ""}
+        />
+
+        {/* Pick Execution Dialog */}
+        <PickExecutionDialog
+          open={!!selectedPickRequestId}
+          onOpenChange={(open) => !open && setSelectedPickRequestId(null)}
+          pickRequestId={selectedPickRequestId || ""}
+        />
       </div>
-
-      {/* Pick Request Dialog */}
-      <PickRequestDialog
-        open={showPickRequestDialog}
-        onOpenChange={setShowPickRequestDialog}
-        locationId={selectedLocationId || ""}
-      />
-
-      {/* Pick Execution Dialog */}
-      <PickExecutionDialog
-        open={!!selectedPickRequestId}
-        onOpenChange={(open) => !open && setSelectedPickRequestId(null)}
-        pickRequestId={selectedPickRequestId || ""}
-      />
-    </AppLayout>
   );
 }
