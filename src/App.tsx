@@ -40,6 +40,7 @@ import ProfitLoss from "./pages/reports/ProfitLoss";
 import XeroConfiguration from "./pages/settings/XeroConfiguration";
 import CategoryGLDefaults from "./pages/settings/CategoryGLDefaults";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
+import ProductionExecution from "./pages/manufacturing/ProductionExecution";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
 
@@ -111,6 +112,7 @@ const App = () => (
             />
             {/* Manufacturing routes */}
             <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
+            <Route path="/manufacturing/production" element={<ProductionExecution />} />
             <Route
               path="/manufacturing/*"
               element={
