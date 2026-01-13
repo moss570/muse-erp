@@ -317,7 +317,6 @@ export type Database = {
           company_prefix: string | null
           country: string | null
           created_at: string
-          default_packaging_indicator: string | null
           email: string | null
           fax: string | null
           gs1_company_prefix: string | null
@@ -338,7 +337,6 @@ export type Database = {
           company_prefix?: string | null
           country?: string | null
           created_at?: string
-          default_packaging_indicator?: string | null
           email?: string | null
           fax?: string | null
           gs1_company_prefix?: string | null
@@ -359,7 +357,6 @@ export type Database = {
           company_prefix?: string | null
           country?: string | null
           created_at?: string
-          default_packaging_indicator?: string | null
           email?: string | null
           fax?: string | null
           gs1_company_prefix?: string | null
@@ -3320,6 +3317,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      packaging_indicator_mappings: {
+        Row: {
+          case_pack_size: number
+          created_at: string
+          description: string | null
+          id: string
+          indicator_digit: string
+          updated_at: string
+        }
+        Insert: {
+          case_pack_size: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          indicator_digit: string
+          updated_at?: string
+        }
+        Update: {
+          case_pack_size?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          indicator_digit?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       pallet_cases: {
         Row: {
