@@ -30,6 +30,7 @@ const companySettingsSchema = z.object({
   state: z.string().optional(),
   zip: z.string().optional(),
   country: z.string().optional(),
+  gs1_company_prefix: z.string().optional(),
 });
 
 type CompanySettingsForm = z.infer<typeof companySettingsSchema>;
@@ -52,6 +53,7 @@ export default function CompanySettings() {
       state: '',
       zip: '',
       country: 'USA',
+      gs1_company_prefix: '',
     },
   });
 
@@ -69,6 +71,7 @@ export default function CompanySettings() {
         state: settings.state || '',
         zip: settings.zip || '',
         country: settings.country || 'USA',
+        gs1_company_prefix: settings.gs1_company_prefix || '',
       });
     }
   }, [settings, form]);
@@ -202,6 +205,23 @@ export default function CompanySettings() {
                       <FormControl>
                         <Input placeholder="www.company.com" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="gs1_company_prefix"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>GS1 Company Prefix</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 0123456" maxLength={11} {...field} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Used for automatic UPC code generation
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
