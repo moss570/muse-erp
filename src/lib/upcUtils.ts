@@ -100,19 +100,10 @@ export function generateSSCC(companyPrefix: string, serialNumber: string, extens
 }
 
 /**
- * Format UPC for display with dashes
+ * Format UPC for display (returns clean digits without dashes)
  */
 export function formatUPCForDisplay(upc: string): string {
-  const clean = upc.replace(/\D/g, '');
-  if (clean.length === 12) {
-    // UPC-A format: X-XXXXX-XXXXX-X
-    return `${clean[0]}-${clean.slice(1, 6)}-${clean.slice(6, 11)}-${clean[11]}`;
-  }
-  if (clean.length === 14) {
-    // GTIN-14 format: X-X-XXXXX-XXXXX-X
-    return `${clean[0]}-${clean[1]}-${clean.slice(2, 7)}-${clean.slice(7, 12)}-${clean[13]}`;
-  }
-  return upc;
+  return upc.replace(/\D/g, '');
 }
 
 /**
