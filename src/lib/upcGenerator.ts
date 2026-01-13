@@ -116,12 +116,17 @@ async function getNextUPCSequence(): Promise<number> {
 /**
  * Generates a UPC-A code for a product/tub and derives a GTIN-14 case code from it
  * 
- * @param packagingIndicator - Optional override for packaging indicator (defaults to company setting)
+ * @param casePackSize - The number of units per case (used to look up packaging indicator)
+ * @param packagingIndicatorOverride - Optional override for packaging indicator
  * @returns Object with tubUpc (12-digit UPC-A) and caseUpc (14-digit GTIN-14)
  */
-export async function generateUPCPair(packagingIndicator?: string): Promise<{ tubUpc: string | null; caseUpc: string | null }> {
-  // Import the GTIN-14 generator
+export async function generateUPCPair(
+  casePackSize?: number,
+  packagingIndicatorOverride?: string
+): Promise<{ tubUpc: string | null; caseUpc: string | null }> {
+  // Import the GTIN-14 generator and packaging indicator lookup
   const { generateGTIN14FromUPC } = await import("./upcUtils");
+  const { getPackagingIndicatorForSize } = await import("@/hooks/usePackagingIndicators");
   
   // Generate the product UPC-A
   const tubSequence = await getNextUPCSequence();
@@ -131,16 +136,13 @@ export async function generateUPCPair(packagingIndicator?: string): Promise<{ tu
     return { tubUpc: null, caseUpc: null };
   }
   
-  // Get packaging indicator from settings if not provided
-  let indicator = packagingIndicator;
+  // Get packaging indicator - priority: override > lookup by case size > default "1"
+  let indicator = packagingIndicatorOverride;
+  if (!indicator && casePackSize) {
+    indicator = await getPackagingIndicatorForSize(casePackSize);
+  }
   if (!indicator) {
-    const { data: settings } = await supabase
-      .from("company_settings")
-      .select("default_packaging_indicator")
-      .limit(1)
-      .single();
-    
-    indicator = settings?.default_packaging_indicator || "1";
+    indicator = "1";
   }
   
   // Derive the GTIN-14 case code from the product UPC-A

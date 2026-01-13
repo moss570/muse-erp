@@ -27,6 +27,7 @@ import {
   BookOpen,
   CalendarCheck,
   Link2,
+  Barcode,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -78,6 +79,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Manage listed material names for standardization',
         href: '/settings/material-names',
         icon: Tags,
+        status: 'active',
+      },
+      {
+        title: 'Packaging Indicators',
+        description: 'Map case pack sizes to GTIN-14 packaging indicator digits',
+        href: '/settings/packaging-indicators',
+        icon: Barcode,
         status: 'active',
       },
     ],

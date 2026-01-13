@@ -51,6 +51,7 @@ import TimeClockKiosk from "./pages/hr/TimeClockKiosk";
 import PayrollExport from "./pages/hr/PayrollExport";
 import RecipeManagement from "./pages/manufacturing/RecipeManagement";
 import ProductCategories from "./pages/settings/ProductCategories";
+import PackagingIndicators from "./pages/settings/PackagingIndicators";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,7 @@ const App = () => (
             <Route path="/settings/xero" element={<XeroConfiguration />} />
             <Route path="/settings/category-gl-defaults" element={<AppLayout><CategoryGLDefaults /></AppLayout>} />
             <Route path="/settings/product-categories" element={<AppLayout><ProductCategories /></AppLayout>} />
+            <Route path="/settings/packaging-indicators" element={<AppLayout><PackagingIndicators /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
