@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 export interface CompanySettings {
   id: string;
   company_name: string;
+  company_prefix: string | null;
+  gs1_company_prefix: string | null;
   phone: string | null;
   fax: string | null;
   email: string | null;
