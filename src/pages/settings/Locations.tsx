@@ -207,7 +207,7 @@ function LocationsContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       toast({ title: 'Location created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating location', description: error.message, variant: 'destructive' });
@@ -245,7 +245,7 @@ function LocationsContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       toast({ title: 'Location updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating location', description: error.message, variant: 'destructive' });

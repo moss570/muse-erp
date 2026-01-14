@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -89,7 +90,8 @@ export function ComplianceDocumentUploadDialog({
       {
         onSuccess: () => {
           form.reset();
-          onOpenChange(false);
+          // Form stays open - user closes explicitly
+          toast.success('Document uploaded successfully');
         },
       }
     );

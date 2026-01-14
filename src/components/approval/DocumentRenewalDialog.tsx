@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -78,7 +79,8 @@ export function DocumentRenewalDialog({
       {
         onSuccess: () => {
           form.reset();
-          onOpenChange(false);
+          // Form stays open - user closes explicitly
+          toast.success('Document renewed successfully');
         },
       }
     );

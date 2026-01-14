@@ -137,7 +137,8 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
           color: data.color || null,
         });
       }
-      onOpenChange(false);
+      // Form stays open - user closes explicitly via Cancel button
+      toast.success('Shift saved successfully');
     } catch (error) {
       console.error('Error saving shift:', error);
     }
@@ -147,7 +148,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
     if (!shift) return;
     try {
       await deleteShift.mutateAsync(shift.id);
-      onOpenChange(false);
+      onOpenChange(false); // Close after delete is intentional
     } catch (error) {
       console.error('Error deleting shift:', error);
     }
@@ -167,7 +168,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
         color: shift.color || null,
       });
       toast.success(`Shift duplicated to ${format(nextDate, 'MMM d')}`);
-      onOpenChange(false);
+      // Form stays open - user can continue editing or close manually
     } catch (error) {
       console.error('Error duplicating shift:', error);
     }

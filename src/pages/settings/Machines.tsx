@@ -122,7 +122,7 @@ export default function Machines() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['machines'] });
       toast({ title: 'Machine created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating machine', description: error.message, variant: 'destructive' });
@@ -145,7 +145,7 @@ export default function Machines() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['machines'] });
       toast({ title: 'Machine updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating machine', description: error.message, variant: 'destructive' });

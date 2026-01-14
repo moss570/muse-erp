@@ -487,7 +487,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         title: 'Purchase Order created', 
         description: `PO ${newPO.po_number} has been created${newPO.requires_approval ? ' and requires approval' : ''}.`
       });
-      onOpenChange(false);
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating PO', description: error.message, variant: 'destructive' });
@@ -572,7 +572,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['po-items'] });
       toast({ title: 'Purchase Order updated successfully' });
-      onOpenChange(false);
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating PO', description: error.message, variant: 'destructive' });

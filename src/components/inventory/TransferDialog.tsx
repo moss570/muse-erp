@@ -141,7 +141,7 @@ export function TransferDialog({
       items: items.filter(i => i.unit_id),
     });
 
-    onOpenChange(false);
+    // Form stays open - user closes explicitly
     resetForm();
   };
 

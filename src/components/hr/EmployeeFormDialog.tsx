@@ -210,13 +210,14 @@ export function EmployeeFormDialog({
 
     if (isEditing && employee) {
       await updateEmployee.mutateAsync({ id: employee.id, ...cleanedData });
+      toast.success('Employee updated successfully');
     } else {
       await createEmployee.mutateAsync(cleanedData);
+      toast.success('Employee created successfully');
     }
     
     onSuccess?.();
-    onOpenChange(false);
-    form.reset();
+    // Form stays open - user closes explicitly via Close button or onOpenChange
   };
 
   return (

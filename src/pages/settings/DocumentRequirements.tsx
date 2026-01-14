@@ -131,7 +131,7 @@ function DocumentRequirementsContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document-requirements'] });
       toast({ title: 'Document requirement created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating document requirement', description: error.message, variant: 'destructive' });
@@ -157,7 +157,7 @@ function DocumentRequirementsContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document-requirements'] });
       toast({ title: 'Document requirement updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating document requirement', description: error.message, variant: 'destructive' });

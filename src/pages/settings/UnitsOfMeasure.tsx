@@ -126,7 +126,7 @@ export default function UnitsOfMeasure() {
       queryClient.invalidateQueries({ queryKey: ['units-of-measure'] });
       queryClient.invalidateQueries({ queryKey: ['units'] });
       toast({ title: 'Unit created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating unit', description: error.message, variant: 'destructive' });
@@ -151,7 +151,7 @@ export default function UnitsOfMeasure() {
       queryClient.invalidateQueries({ queryKey: ['units-of-measure'] });
       queryClient.invalidateQueries({ queryKey: ['units'] });
       toast({ title: 'Unit updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating unit', description: error.message, variant: 'destructive' });

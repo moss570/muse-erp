@@ -217,6 +217,7 @@ ${html}
           document_html: documentHtml || undefined,
           email_html: emailHtml || undefined,
         });
+        toast.success('Template updated successfully');
       } else {
         await createTemplate.mutateAsync({
           name: values.name,
@@ -231,8 +232,9 @@ ${html}
           document_html: documentHtml || undefined,
           email_html: emailHtml || undefined,
         });
+        toast.success('Template created successfully');
       }
-      onOpenChange(false);
+      // Form stays open - user closes explicitly
     } catch (error) {
       // Error handled by mutation
     }

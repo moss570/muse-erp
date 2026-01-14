@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -205,6 +206,7 @@ export function LabelTemplateFormDialog({
           is_default: data.is_default,
           fields_config: fieldsConfig,
         });
+        toast.success('Label template updated successfully');
       } else {
         await createMutation.mutateAsync({
           name: data.name,
@@ -219,8 +221,9 @@ export function LabelTemplateFormDialog({
           is_default: data.is_default,
           fields_config: fieldsConfig,
         });
+        toast.success('Label template created successfully');
       }
-      onOpenChange(false);
+      // Form stays open - user closes explicitly
     } catch (error) {
       // Error handled by mutation
     }

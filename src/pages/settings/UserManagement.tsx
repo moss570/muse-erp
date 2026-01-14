@@ -160,7 +160,7 @@ export default function UserManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({ title: 'User role updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating user role', description: error.message, variant: 'destructive' });

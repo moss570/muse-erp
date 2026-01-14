@@ -112,7 +112,7 @@ export function AdjustmentDialog({ open, onOpenChange, lotId }: AdjustmentDialog
       requires_approval: adjustedQty > 10, // Require approval for large adjustments
     });
 
-    onOpenChange(false);
+    // Form stays open - user closes explicitly
     resetForm();
   };
 
