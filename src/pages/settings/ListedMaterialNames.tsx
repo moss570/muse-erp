@@ -133,7 +133,7 @@ export default function ListedMaterialNames() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
       toast({ title: 'Material name created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating material name', description: error.message, variant: 'destructive' });
@@ -156,7 +156,7 @@ export default function ListedMaterialNames() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
       toast({ title: 'Material name updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating material name', description: error.message, variant: 'destructive' });

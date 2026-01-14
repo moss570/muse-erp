@@ -131,7 +131,7 @@ export default function SubCategories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['material-sub-categories'] });
       toast({ title: 'Sub-category created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating sub-category', description: error.message, variant: 'destructive' });
@@ -155,7 +155,7 @@ export default function SubCategories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['material-sub-categories'] });
       toast({ title: 'Sub-category updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating sub-category', description: error.message, variant: 'destructive' });

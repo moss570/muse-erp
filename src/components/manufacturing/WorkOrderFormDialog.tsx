@@ -35,6 +35,7 @@ import { useCreateWorkOrder, useUpdateWorkOrder, useApprovedLotsForWorkOrder, ty
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   work_order_type: z.enum(["base", "flavoring", "freezing", "case_pack"]),
@@ -193,10 +194,12 @@ export function WorkOrderFormDialog({
           id: workOrder.id,
           ...values,
         } as any);
+        toast.success('Work order updated successfully');
       } else {
         await createWorkOrder.mutateAsync(values as any);
+        toast.success('Work order created successfully');
       }
-      onOpenChange(false);
+      // Form stays open - user closes explicitly
     } catch (error) {
       // Error handled by mutation
     }

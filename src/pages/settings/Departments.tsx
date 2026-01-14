@@ -124,7 +124,7 @@ export default function Departments() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast({ title: 'Department created successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating department', description: error.message, variant: 'destructive' });
@@ -147,7 +147,7 @@ export default function Departments() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast({ title: 'Department updated successfully' });
-      handleCloseDialog();
+      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating department', description: error.message, variant: 'destructive' });
