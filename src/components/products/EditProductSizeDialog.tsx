@@ -45,6 +45,7 @@ export function EditProductSizeDialog({
   const [targetWeight, setTargetWeight] = useState<number | null>(null);
   const [minWeight, setMinWeight] = useState<number | null>(null);
   const [maxWeight, setMaxWeight] = useState<number | null>(null);
+  const [variancePercent, setVariancePercent] = useState<number>(3.5);
   const [tubUpc, setTubUpc] = useState<string>("");
   const [caseUpc, setCaseUpc] = useState<string>("");
   const [caseWeightKg, setCaseWeightKg] = useState<number | null>(null);
@@ -97,9 +98,19 @@ export function EditProductSizeDialog({
         setContainerSizeId((size as any).container_size_id || "");
         setUnitsPerCase(size.units_per_case || 4);
         setBoxMaterialId((size as any).box_material_id || "");
-        setTargetWeight((size as any).target_weight_kg || null);
-        setMinWeight((size as any).min_weight_kg || null);
-        setMaxWeight((size as any).max_weight_kg || null);
+        const target = (size as any).target_weight_kg || null;
+        const min = (size as any).min_weight_kg || null;
+        const max = (size as any).max_weight_kg || null;
+        setTargetWeight(target);
+        setMinWeight(min);
+        setMaxWeight(max);
+        // Calculate variance percent from existing data if possible
+        if (target && min) {
+          const calculatedVariance = ((target - min) / target) * 100;
+          setVariancePercent(Math.round(calculatedVariance * 10) / 10);
+        } else {
+          setVariancePercent(3.5);
+        }
         setTubUpc(size.upc_code || "");
         setCaseUpc(size.case_upc_code || "");
         setCaseWeightKg(size.case_weight_kg || null);
@@ -114,6 +125,7 @@ export function EditProductSizeDialog({
         setTargetWeight(null);
         setMinWeight(null);
         setMaxWeight(null);
+        setVariancePercent(3.5);
         setTubUpc("");
         setCaseUpc("");
         setCaseWeightKg(null);
@@ -126,15 +138,16 @@ export function EditProductSizeDialog({
     }
   }, [open, size]);
 
-  // Auto-populate weight fields when container size changes
+  // Auto-calculate Min/Max when Target or variance changes
   useEffect(() => {
-    if (selectedContainer && !size) {
-      // Only auto-populate for new sizes, not edits
-      setTargetWeight(selectedContainer.target_weight_kg);
-      setMinWeight(selectedContainer.min_weight_kg);
-      setMaxWeight(selectedContainer.max_weight_kg);
+    if (targetWeight !== null && targetWeight > 0) {
+      const variance = variancePercent / 100;
+      const calculatedMin = Math.round((targetWeight * (1 - variance)) * 100) / 100;
+      const calculatedMax = Math.round((targetWeight * (1 + variance)) * 100) / 100;
+      setMinWeight(calculatedMin);
+      setMaxWeight(calculatedMax);
     }
-  }, [selectedContainer, size]);
+  }, [targetWeight, variancePercent]);
 
   const handleGenerateUpc = async () => {
     setIsGeneratingUpc(true);
@@ -320,9 +333,9 @@ export function EditProductSizeDialog({
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
               <p className="text-xs text-muted-foreground">
-                Defaults loaded from container size. Override only if product-specific variance needed.
+                Enter target weight. Min/Max are auto-calculated based on variance %.
               </p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Target (kg)</Label>
                   <Input
@@ -334,23 +347,37 @@ export function EditProductSizeDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Min (kg)</Label>
+                  <Label>Variance %</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="50"
+                    value={variancePercent}
+                    onChange={(e) => setVariancePercent(e.target.value ? parseFloat(e.target.value) : 3.5)}
+                    placeholder="3.5"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Min (kg) - calculated</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={minWeight ?? ""}
-                    onChange={(e) => setMinWeight(e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="e.g., 2.20"
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max (kg)</Label>
+                  <Label className="text-muted-foreground">Max (kg) - calculated</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={maxWeight ?? ""}
-                    onChange={(e) => setMaxWeight(e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="e.g., 2.35"
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
               </div>

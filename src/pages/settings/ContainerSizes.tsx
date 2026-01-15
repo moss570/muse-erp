@@ -19,9 +19,6 @@ export default function ContainerSizes() {
     name: "",
     volume_gallons: 0,
     sku_code: "",
-    target_weight_kg: null,
-    min_weight_kg: null,
-    max_weight_kg: null,
     is_active: true,
     sort_order: 0,
   });
@@ -32,9 +29,6 @@ export default function ContainerSizes() {
       name: "",
       volume_gallons: 0,
       sku_code: "",
-      target_weight_kg: null,
-      min_weight_kg: null,
-      max_weight_kg: null,
       is_active: true,
       sort_order: containerSizes?.length || 0,
     });
@@ -47,9 +41,6 @@ export default function ContainerSizes() {
       name: size.name,
       volume_gallons: size.volume_gallons,
       sku_code: size.sku_code,
-      target_weight_kg: size.target_weight_kg,
-      min_weight_kg: size.min_weight_kg,
-      max_weight_kg: size.max_weight_kg,
       is_active: size.is_active,
       sort_order: size.sort_order,
     });
@@ -64,26 +55,6 @@ export default function ContainerSizes() {
 
     if (formData.sku_code.length < 1 || formData.sku_code.length > 4) {
       toast.error("SKU code must be 1-4 characters");
-      return false;
-    }
-
-    // Validate weight constraints if provided
-    const min = formData.min_weight_kg;
-    const target = formData.target_weight_kg;
-    const max = formData.max_weight_kg;
-
-    if (min !== null && target !== null && min >= target) {
-      toast.error("Min weight must be less than target weight");
-      return false;
-    }
-
-    if (target !== null && max !== null && target >= max) {
-      toast.error("Target weight must be less than max weight");
-      return false;
-    }
-
-    if (min !== null && max !== null && min >= max) {
-      toast.error("Min weight must be less than max weight");
       return false;
     }
 
@@ -145,9 +116,6 @@ export default function ContainerSizes() {
                 <TableHead>Name</TableHead>
                 <TableHead>Volume (gal)</TableHead>
                 <TableHead>SKU Code</TableHead>
-                <TableHead>Target (kg)</TableHead>
-                <TableHead>Min (kg)</TableHead>
-                <TableHead>Max (kg)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -163,9 +131,6 @@ export default function ContainerSizes() {
                   <TableCell>
                     <Badge variant="outline">{size.sku_code}</Badge>
                   </TableCell>
-                  <TableCell>{size.target_weight_kg ?? "-"}</TableCell>
-                  <TableCell>{size.min_weight_kg ?? "-"}</TableCell>
-                  <TableCell>{size.max_weight_kg ?? "-"}</TableCell>
                   <TableCell>
                     <Badge variant={size.is_active ? "default" : "secondary"}>
                       {size.is_active ? "Active" : "Inactive"}
@@ -193,7 +158,7 @@ export default function ContainerSizes() {
               ))}
               {(!containerSizes || containerSizes.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No container sizes found. Create your first container size to get started.
                   </TableCell>
                 </TableRow>
@@ -250,58 +215,6 @@ export default function ContainerSizes() {
                 placeholder="e.g., 0.5"
               />
               <p className="text-xs text-muted-foreground">Volume in gallons for production reporting</p>
-            </div>
-
-            <div className="border-t pt-4 space-y-4">
-              <h4 className="font-medium text-sm">Weight Specifications (Optional)</h4>
-              <p className="text-xs text-muted-foreground">
-                Set default weight targets and ranges for quality control
-              </p>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="target_weight">Target (kg)</Label>
-                  <Input
-                    id="target_weight"
-                    type="number"
-                    step="0.01"
-                    value={formData.target_weight_kg ?? ""}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      target_weight_kg: e.target.value ? parseFloat(e.target.value) : null 
-                    })}
-                    placeholder="e.g., 2.27"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="min_weight">Min (kg)</Label>
-                  <Input
-                    id="min_weight"
-                    type="number"
-                    step="0.01"
-                    value={formData.min_weight_kg ?? ""}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      min_weight_kg: e.target.value ? parseFloat(e.target.value) : null 
-                    })}
-                    placeholder="e.g., 2.20"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="max_weight">Max (kg)</Label>
-                  <Input
-                    id="max_weight"
-                    type="number"
-                    step="0.01"
-                    value={formData.max_weight_kg ?? ""}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      max_weight_kg: e.target.value ? parseFloat(e.target.value) : null 
-                    })}
-                    placeholder="e.g., 2.35"
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="flex items-center justify-between">
