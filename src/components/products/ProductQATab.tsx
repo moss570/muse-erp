@@ -11,8 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Download, Loader2, AlertTriangle, X } from "lucide-react";
+import { Plus, Trash2, Download, Loader2, AlertTriangle, X, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
+import { SelectTestTemplatesDialog } from "./SelectTestTemplatesDialog";
 
 interface ProductQATabProps {
   productId: string;
@@ -33,6 +34,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
   const { allergens, claims, createAttribute, deleteAttribute } = useProductAttributes(productId);
   
   const [isAddingReq, setIsAddingReq] = useState(false);
+  const [isSelectingTemplates, setIsSelectingTemplates] = useState(false);
   const [newReq, setNewReq] = useState({
     parameter_name: "",
     target_value: "",
@@ -65,6 +67,38 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
 
     await bulkCreateRequirements.mutateAsync(newRequirements);
   };
+
+  const handleSelectTemplates = async (templates: Array<{
+    test_template_id: string;
+    parameter_name: string;
+    target_value: string | null;
+    min_value: number | null;
+    max_value: number | null;
+    uom: string | null;
+    required_at_stage: string | null;
+    is_critical: boolean;
+    test_method: string | null;
+    frequency: string | null;
+  }>) => {
+    const newRequirements = templates.map((t, index) => ({
+      product_id: productId,
+      test_template_id: t.test_template_id,
+      parameter_name: t.parameter_name,
+      target_value: t.target_value,
+      min_value: t.min_value,
+      max_value: t.max_value,
+      uom: t.uom,
+      required_at_stage: t.required_at_stage,
+      is_critical: t.is_critical,
+      test_method: t.test_method,
+      frequency: t.frequency,
+      sort_order: requirements.length + index,
+    }));
+
+    await bulkCreateRequirements.mutateAsync(newRequirements);
+    toast.success(`Added ${templates.length} test requirement(s) from library`);
+  };
+
 
   const handleAddRequirement = async () => {
     if (!newReq.parameter_name) {
@@ -161,12 +195,18 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                 Quality parameters that must be recorded during production
               </CardDescription>
             </div>
-            {category && category.qa_parameters?.length > 0 && (
-              <Button variant="outline" size="sm" onClick={handleImportFromCategory}>
-                <Download className="h-4 w-4 mr-2" />
-                Import from {category.name}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsSelectingTemplates(true)}>
+                <FlaskConical className="h-4 w-4 mr-2" />
+                Select from Test Library
               </Button>
-            )}
+              {category && category.qa_parameters?.length > 0 && (
+                <Button variant="outline" size="sm" onClick={handleImportFromCategory}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Import from {category.name}
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -419,6 +459,16 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
           </CardContent>
         </Card>
       </div>
+
+      {/* Select Test Templates Dialog */}
+      <SelectTestTemplatesDialog
+        open={isSelectingTemplates}
+        onOpenChange={setIsSelectingTemplates}
+        onSelect={handleSelectTemplates}
+        existingTemplateIds={requirements
+          .filter((r) => r.test_template_id)
+          .map((r) => r.test_template_id as string)}
+      />
     </div>
   );
 }
