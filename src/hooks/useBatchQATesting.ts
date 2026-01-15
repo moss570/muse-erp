@@ -91,16 +91,27 @@ export function useRequiredTestsForLot(lotId: string | null, productId: string |
   return useQuery({
     queryKey: ['required-tests-for-lot', lotId, productId],
     queryFn: async () => {
-      if (!productId) return [];
+      if (!productId) return [] as Array<{
+        id: string;
+        product_id: string;
+        parameter_name: string;
+        is_critical: boolean | null;
+        test_template_id: string | null;
+        frequency: string | null;
+        sample_size: string | null;
+        target_value: string | null;
+        min_value: number | null;
+        max_value: number | null;
+        uom: string | null;
+      }>;
       
       const { data, error } = await supabase
         .from('product_qa_requirements')
-        .select('*')
-        .eq('product_id', productId)
-        .eq('is_required', true);
+        .select('id, product_id, parameter_name, is_critical, test_template_id, frequency, sample_size, target_value, min_value, max_value, uom')
+        .eq('product_id', productId);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!productId,
   });
