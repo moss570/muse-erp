@@ -4447,6 +4447,8 @@ export type Database = {
           case_weight_kg: number | null
           container_size_id: string | null
           created_at: string | null
+          custom_pallet_length_in: number | null
+          custom_pallet_width_in: number | null
           hi_count: number | null
           id: string
           is_active: boolean | null
@@ -4455,6 +4457,7 @@ export type Database = {
           min_weight_kg: number | null
           packaging_indicator: string | null
           packaging_material_id: string | null
+          pallet_type: string | null
           product_id: string
           size_name: string
           size_unit_id: string | null
@@ -4474,6 +4477,8 @@ export type Database = {
           case_weight_kg?: number | null
           container_size_id?: string | null
           created_at?: string | null
+          custom_pallet_length_in?: number | null
+          custom_pallet_width_in?: number | null
           hi_count?: number | null
           id?: string
           is_active?: boolean | null
@@ -4482,6 +4487,7 @@ export type Database = {
           min_weight_kg?: number | null
           packaging_indicator?: string | null
           packaging_material_id?: string | null
+          pallet_type?: string | null
           product_id: string
           size_name: string
           size_unit_id?: string | null
@@ -4501,6 +4507,8 @@ export type Database = {
           case_weight_kg?: number | null
           container_size_id?: string | null
           created_at?: string | null
+          custom_pallet_length_in?: number | null
+          custom_pallet_width_in?: number | null
           hi_count?: number | null
           id?: string
           is_active?: boolean | null
@@ -4509,6 +4517,7 @@ export type Database = {
           min_weight_kg?: number | null
           packaging_indicator?: string | null
           packaging_material_id?: string | null
+          pallet_type?: string | null
           product_id?: string
           size_name?: string
           size_unit_id?: string | null
