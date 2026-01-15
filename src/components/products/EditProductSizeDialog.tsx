@@ -389,7 +389,7 @@ export function EditProductSizeDialog({
       }
 
       onSave();
-      onOpenChange(false);
+      // Keep dialog open after save - user can close manually
     } catch (error) {
       // Error handled by mutation
     } finally {
