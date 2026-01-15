@@ -22,9 +22,9 @@ interface BoxMaterial {
   code: string;
   name: string;
   box_weight_kg: number | null;
-  box_length_cm: number | null;
-  box_width_cm: number | null;
-  box_height_cm: number | null;
+  box_length_in: number | null;
+  box_width_in: number | null;
+  box_height_in: number | null;
 }
 
 const STANDARD_PALLET_WEIGHT_KG = 20; // Standard wooden pallet ~20kg
@@ -49,7 +49,7 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
     queryFn: async () => {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, code, name, box_weight_kg, box_length_cm, box_width_cm, box_height_cm")
+        .select("id, code, name, box_weight_kg, box_length_in, box_width_in, box_height_in")
         .eq("category", "Boxes")
         .eq("is_active", true)
         .order("name");
@@ -92,21 +92,21 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
     }
   }, [sizes, selectedSizeId]);
 
-  // Calculate case cube (in m³)
-  const caseCubeM3 = useMemo(() => {
-    if (!selectedBox?.box_length_cm || !selectedBox?.box_width_cm || !selectedBox?.box_height_cm) {
+  // Calculate case cube (in cubic feet) from inches
+  const caseCubeFt3 = useMemo(() => {
+    if (!selectedBox?.box_length_in || !selectedBox?.box_width_in || !selectedBox?.box_height_in) {
       return null;
     }
-    // Convert cm³ to m³
-    const volumeCm3 = selectedBox.box_length_cm * selectedBox.box_width_cm * selectedBox.box_height_cm;
-    return volumeCm3 / 1000000;
+    // Convert cubic inches to cubic feet (1 ft³ = 1728 in³)
+    const volumeIn3 = selectedBox.box_length_in * selectedBox.box_width_in * selectedBox.box_height_in;
+    return volumeIn3 / 1728;
   }, [selectedBox]);
 
-  // Calculate case cube in cubic feet for display
-  const caseCubeFt3 = useMemo(() => {
-    if (!caseCubeM3) return null;
-    return caseCubeM3 * 35.3147; // m³ to ft³
-  }, [caseCubeM3]);
+  // Calculate case cube in m³ for storage
+  const caseCubeM3 = useMemo(() => {
+    if (!caseCubeFt3) return null;
+    return caseCubeFt3 / 35.3147; // ft³ to m³
+  }, [caseCubeFt3]);
 
   // Calculate case weight: (units × target weight) + box weight
   const caseWeightKg = useMemo(() => {
@@ -243,16 +243,16 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
                       {boxMaterials.map((mat) => (
                         <SelectItem key={mat.id} value={mat.id}>
                           {mat.code} - {mat.name}
-                          {mat.box_length_cm && mat.box_width_cm && mat.box_height_cm && (
+                          {mat.box_length_in && mat.box_width_in && mat.box_height_in && (
                             <span className="text-muted-foreground ml-1">
-                              ({mat.box_length_cm}×{mat.box_width_cm}×{mat.box_height_cm}cm)
+                              ({mat.box_length_in}×{mat.box_width_in}×{mat.box_height_in}")
                             </span>
                           )}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {selectedBox && !selectedBox.box_length_cm && (
+                  {selectedBox && !selectedBox.box_length_in && (
                     <p className="text-xs text-amber-600">
                       ⚠️ Box dimensions not set. Configure in Materials settings.
                     </p>
@@ -383,7 +383,7 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
           </Card>
 
           {/* Visual Representation */}
-          {selectedBox?.box_length_cm && selectedBox?.box_width_cm && selectedBox?.box_height_cm && tiCount && hiCount && (
+          {selectedBox?.box_length_in && selectedBox?.box_width_in && selectedBox?.box_height_in && tiCount && hiCount && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Pallet Visualization</CardTitle>
@@ -392,9 +392,9 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
                 <PalletVisualizer
                   ti={tiCount}
                   hi={hiCount}
-                  boxLengthCm={selectedBox.box_length_cm}
-                  boxWidthCm={selectedBox.box_width_cm}
-                  boxHeightCm={selectedBox.box_height_cm}
+                  boxLengthIn={selectedBox.box_length_in}
+                  boxWidthIn={selectedBox.box_width_in}
+                  boxHeightIn={selectedBox.box_height_in}
                 />
               </CardContent>
             </Card>

@@ -4,40 +4,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface PalletVisualizerProps {
   ti: number; // Cases per layer (tier)
   hi: number; // Number of layers (height)
-  boxLengthCm: number;
-  boxWidthCm: number;
-  boxHeightCm: number;
-  palletLengthCm?: number; // Default 48" = 121.92cm
-  palletWidthCm?: number;  // Default 40" = 101.6cm
+  boxLengthIn: number;
+  boxWidthIn: number;
+  boxHeightIn: number;
+  palletLengthIn?: number; // Default 48"
+  palletWidthIn?: number;  // Default 40"
 }
 
 // Standard pallet dimensions (48" x 40")
-const DEFAULT_PALLET_LENGTH_CM = 121.92;
-const DEFAULT_PALLET_WIDTH_CM = 101.6;
-const PALLET_HEIGHT_CM = 15; // Standard pallet height ~6"
+const DEFAULT_PALLET_LENGTH_IN = 48;
+const DEFAULT_PALLET_WIDTH_IN = 40;
+const PALLET_HEIGHT_IN = 6; // Standard pallet height ~6"
 
 export function PalletVisualizer({
   ti,
   hi,
-  boxLengthCm,
-  boxWidthCm,
-  boxHeightCm,
-  palletLengthCm = DEFAULT_PALLET_LENGTH_CM,
-  palletWidthCm = DEFAULT_PALLET_WIDTH_CM,
+  boxLengthIn,
+  boxWidthIn,
+  boxHeightIn,
+  palletLengthIn = DEFAULT_PALLET_LENGTH_IN,
+  palletWidthIn = DEFAULT_PALLET_WIDTH_IN,
 }: PalletVisualizerProps) {
   // Calculate optimal box arrangement
   const arrangement = useMemo(() => {
-    if (!ti || !boxLengthCm || !boxWidthCm) return null;
+    if (!ti || !boxLengthIn || !boxWidthIn) return null;
 
     // Try different arrangements to fit Ti boxes on the pallet
     // Arrangement 1: All boxes same orientation (length along pallet length)
-    const cols1 = Math.floor(palletLengthCm / boxLengthCm);
-    const rows1 = Math.floor(palletWidthCm / boxWidthCm);
+    const cols1 = Math.floor(palletLengthIn / boxLengthIn);
+    const rows1 = Math.floor(palletWidthIn / boxWidthIn);
     const fit1 = cols1 * rows1;
 
     // Arrangement 2: All boxes rotated 90 degrees
-    const cols2 = Math.floor(palletLengthCm / boxWidthCm);
-    const rows2 = Math.floor(palletWidthCm / boxLengthCm);
+    const cols2 = Math.floor(palletLengthIn / boxWidthIn);
+    const rows2 = Math.floor(palletWidthIn / boxLengthIn);
     const fit2 = cols2 * rows2;
 
     // Use the arrangement that fits the Ti value best
@@ -46,25 +46,25 @@ export function PalletVisualizer({
     if (fit1 >= ti && fit1 <= fit2) {
       cols = cols1;
       rows = rows1;
-      boxL = boxLengthCm;
-      boxW = boxWidthCm;
+      boxL = boxLengthIn;
+      boxW = boxWidthIn;
     } else if (fit2 >= ti) {
       cols = cols2;
       rows = rows2;
-      boxL = boxWidthCm;
-      boxW = boxLengthCm;
+      boxL = boxWidthIn;
+      boxW = boxLengthIn;
     } else {
       // Neither arrangement fits Ti exactly, use the one that fits more
       if (fit1 >= fit2) {
         cols = cols1;
         rows = rows1;
-        boxL = boxLengthCm;
-        boxW = boxWidthCm;
+        boxL = boxLengthIn;
+        boxW = boxWidthIn;
       } else {
         cols = cols2;
         rows = rows2;
-        boxL = boxWidthCm;
-        boxW = boxLengthCm;
+        boxL = boxWidthIn;
+        boxW = boxLengthIn;
       }
     }
 
@@ -91,31 +91,31 @@ export function PalletVisualizer({
       boxW,
       maxFit: cols * rows,
     };
-  }, [ti, boxLengthCm, boxWidthCm, palletLengthCm, palletWidthCm]);
+  }, [ti, boxLengthIn, boxWidthIn, palletLengthIn, palletWidthIn]);
 
   // Calculate total stack height
   const totalStackHeight = useMemo(() => {
-    if (!hi || !boxHeightCm) return PALLET_HEIGHT_CM;
-    return PALLET_HEIGHT_CM + (hi * boxHeightCm);
-  }, [hi, boxHeightCm]);
+    if (!hi || !boxHeightIn) return PALLET_HEIGHT_IN;
+    return PALLET_HEIGHT_IN + (hi * boxHeightIn);
+  }, [hi, boxHeightIn]);
 
-  // SVG scale factors
+  // SVG scale factors (scale inches to pixels)
   const topViewWidth = 280;
   const topViewHeight = 240;
   const sideViewWidth = 280;
   const sideViewHeight = 200;
   
   const topScale = Math.min(
-    (topViewWidth - 40) / palletLengthCm,
-    (topViewHeight - 40) / palletWidthCm
+    (topViewWidth - 40) / palletLengthIn,
+    (topViewHeight - 40) / palletWidthIn
   );
   
   const sideScale = Math.min(
-    (sideViewWidth - 40) / palletLengthCm,
-    (sideViewHeight - 40) / (totalStackHeight || 100)
+    (sideViewWidth - 40) / palletLengthIn,
+    (sideViewHeight - 40) / (totalStackHeight || 50)
   );
 
-  if (!ti || !hi || !boxLengthCm || !boxWidthCm || !boxHeightCm) {
+  if (!ti || !hi || !boxLengthIn || !boxWidthIn || !boxHeightIn) {
     return (
       <div className="text-center text-muted-foreground py-8">
         Enter Ti, Hi, and box dimensions to see pallet visualization
@@ -141,8 +141,8 @@ export function PalletVisualizer({
             <rect
               x={20}
               y={20}
-              width={palletLengthCm * topScale}
-              height={palletWidthCm * topScale}
+              width={palletLengthIn * topScale}
+              height={palletWidthIn * topScale}
               fill="hsl(var(--muted))"
               stroke="hsl(var(--border))"
               strokeWidth={2}
@@ -154,9 +154,9 @@ export function PalletVisualizer({
               <line
                 key={i}
                 x1={20}
-                y1={20 + palletWidthCm * topScale * pos}
-                x2={20 + palletLengthCm * topScale}
-                y2={20 + palletWidthCm * topScale * pos}
+                y1={20 + palletWidthIn * topScale * pos}
+                x2={20 + palletLengthIn * topScale}
+                y2={20 + palletWidthIn * topScale * pos}
                 stroke="hsl(var(--border))"
                 strokeWidth={1}
                 strokeDasharray="4,4"
@@ -192,23 +192,23 @@ export function PalletVisualizer({
 
             {/* Dimension labels */}
             <text
-              x={20 + (palletLengthCm * topScale) / 2}
+              x={20 + (palletLengthIn * topScale) / 2}
               y={topViewHeight - 5}
               textAnchor="middle"
               fontSize={10}
               fill="hsl(var(--muted-foreground))"
             >
-              48" ({Math.round(palletLengthCm)}cm)
+              {palletLengthIn}"
             </text>
             <text
               x={10}
-              y={20 + (palletWidthCm * topScale) / 2}
+              y={20 + (palletWidthIn * topScale) / 2}
               textAnchor="middle"
               fontSize={10}
               fill="hsl(var(--muted-foreground))"
-              transform={`rotate(-90, 10, ${20 + (palletWidthCm * topScale) / 2})`}
+              transform={`rotate(-90, 10, ${20 + (palletWidthIn * topScale) / 2})`}
             >
-              40" ({Math.round(palletWidthCm)}cm)
+              {palletWidthIn}"
             </text>
           </svg>
         </CardContent>
@@ -229,9 +229,9 @@ export function PalletVisualizer({
             {/* Pallet base */}
             <rect
               x={20}
-              y={sideViewHeight - 20 - PALLET_HEIGHT_CM * sideScale}
-              width={palletLengthCm * sideScale}
-              height={PALLET_HEIGHT_CM * sideScale}
+              y={sideViewHeight - 20 - PALLET_HEIGHT_IN * sideScale}
+              width={palletLengthIn * sideScale}
+              height={PALLET_HEIGHT_IN * sideScale}
               fill="hsl(var(--muted))"
               stroke="hsl(var(--border))"
               strokeWidth={2}
@@ -243,9 +243,9 @@ export function PalletVisualizer({
               <rect
                 key={layer}
                 x={20}
-                y={sideViewHeight - 20 - PALLET_HEIGHT_CM * sideScale - (layer + 1) * boxHeightCm * sideScale}
-                width={palletLengthCm * sideScale}
-                height={boxHeightCm * sideScale - 1}
+                y={sideViewHeight - 20 - PALLET_HEIGHT_IN * sideScale - (layer + 1) * boxHeightIn * sideScale}
+                width={palletLengthIn * sideScale}
+                height={boxHeightIn * sideScale - 1}
                 fill={layer % 2 === 0 ? "hsl(var(--primary) / 0.7)" : "hsl(var(--primary) / 0.5)"}
                 stroke="hsl(var(--primary))"
                 strokeWidth={1}
@@ -258,7 +258,7 @@ export function PalletVisualizer({
               <text
                 key={layer}
                 x={sideViewWidth - 25}
-                y={sideViewHeight - 20 - PALLET_HEIGHT_CM * sideScale - (layer + 0.5) * boxHeightCm * sideScale}
+                y={sideViewHeight - 20 - PALLET_HEIGHT_IN * sideScale - (layer + 0.5) * boxHeightIn * sideScale}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize={9}
@@ -286,7 +286,7 @@ export function PalletVisualizer({
               fill="hsl(var(--muted-foreground))"
               transform={`rotate(-90, ${sideViewWidth - 5}, ${sideViewHeight - 20 - (totalStackHeight * sideScale) / 2})`}
             >
-              {Math.round(totalStackHeight)}cm
+              {totalStackHeight.toFixed(1)}"
             </text>
           </svg>
         </CardContent>

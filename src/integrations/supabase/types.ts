@@ -3127,15 +3127,15 @@ export type Database = {
           box_flute_type: string | null
           box_foreign_material_control: boolean | null
           box_heavy_metals_coneg: boolean | null
-          box_height_cm: number | null
+          box_height_in: number | null
           box_joint_style: string | null
-          box_length_cm: number | null
+          box_length_in: number | null
           box_recycled_content_verified: boolean | null
           box_strength_type: string | null
           box_strength_value: string | null
           box_style_code: string | null
           box_weight_kg: number | null
-          box_width_cm: number | null
+          box_width_in: number | null
           ca_prop65_prohibited: boolean | null
           category: string | null
           coa_critical_limits: Json | null
@@ -3199,15 +3199,15 @@ export type Database = {
           box_flute_type?: string | null
           box_foreign_material_control?: boolean | null
           box_heavy_metals_coneg?: boolean | null
-          box_height_cm?: number | null
+          box_height_in?: number | null
           box_joint_style?: string | null
-          box_length_cm?: number | null
+          box_length_in?: number | null
           box_recycled_content_verified?: boolean | null
           box_strength_type?: string | null
           box_strength_value?: string | null
           box_style_code?: string | null
           box_weight_kg?: number | null
-          box_width_cm?: number | null
+          box_width_in?: number | null
           ca_prop65_prohibited?: boolean | null
           category?: string | null
           coa_critical_limits?: Json | null
@@ -3271,15 +3271,15 @@ export type Database = {
           box_flute_type?: string | null
           box_foreign_material_control?: boolean | null
           box_heavy_metals_coneg?: boolean | null
-          box_height_cm?: number | null
+          box_height_in?: number | null
           box_joint_style?: string | null
-          box_length_cm?: number | null
+          box_length_in?: number | null
           box_recycled_content_verified?: boolean | null
           box_strength_type?: string | null
           box_strength_value?: string | null
           box_style_code?: string | null
           box_weight_kg?: number | null
-          box_width_cm?: number | null
+          box_width_in?: number | null
           ca_prop65_prohibited?: boolean | null
           category?: string | null
           coa_critical_limits?: Json | null

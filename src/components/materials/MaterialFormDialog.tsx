@@ -139,11 +139,11 @@ const materialFormSchema = z.object({
   box_joint_style: z.string().optional().nullable(),
   box_style_code: z.string().optional().nullable(),
   
-  // Box Physical Dimensions (for pallet configuration)
+  // Box Physical Dimensions (for pallet configuration) - in inches
   box_weight_kg: z.coerce.number().optional().nullable(),
-  box_length_cm: z.coerce.number().optional().nullable(),
-  box_width_cm: z.coerce.number().optional().nullable(),
-  box_height_cm: z.coerce.number().optional().nullable(),
+  box_length_in: z.coerce.number().optional().nullable(),
+  box_width_in: z.coerce.number().optional().nullable(),
+  box_height_in: z.coerce.number().optional().nullable(),
   
   // Box-Specific Specifications (Food Safety)
   box_recycled_content_verified: z.boolean().default(false),
@@ -2159,29 +2159,30 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             />
                           )}
 
-                          <FormField
-                            control={form.control}
-                            name="pkg_weight_kg"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Weight of Packaging (KG)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    step="0.001"
-                                    placeholder="0.000"
-                                    {...field}
-                                    value={field.value ?? ''}
-                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-
-                          {/* Hide Volume fields for Boxes */}
+                          {/* Hide Weight and Volume fields for Boxes - they use box_weight_kg in the Pallet Config section */}
                           {!isBoxes && (
-                            <div className="grid grid-cols-2 gap-4">
+                            <>
+                              <FormField
+                                control={form.control}
+                                name="pkg_weight_kg"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Weight of Packaging (KG)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        step="0.001"
+                                        placeholder="0.000"
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
                                 name="pkg_volume"
@@ -2230,25 +2231,26 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 )}
                               />
                             </div>
-                          )}
 
-                          <FormField
-                            control={form.control}
-                            name="pkg_recyclable"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Can be recycled</FormLabel>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
+                              <FormField
+                                control={form.control}
+                                name="pkg_recyclable"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel>Can be recycled</FormLabel>
+                                    </div>
+                                  </FormItem>
+                                )}
+                              />
+                            </>
+                          )}
                         </div>
                       )}
 
@@ -2438,15 +2440,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
                               <FormField
                                 control={form.control}
-                                name="box_length_cm"
+                                name="box_length_in"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Length (cm)</FormLabel>
+                                    <FormLabel>Length (in)</FormLabel>
                                     <FormControl>
                                       <Input 
                                         type="number"
-                                        step="0.1"
-                                        placeholder="e.g., 40" 
+                                        step="0.125"
+                                        placeholder="e.g., 16" 
                                         {...field} 
                                         value={field.value ?? ''} 
                                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
@@ -2458,15 +2460,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
                               <FormField
                                 control={form.control}
-                                name="box_width_cm"
+                                name="box_width_in"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Width (cm)</FormLabel>
+                                    <FormLabel>Width (in)</FormLabel>
                                     <FormControl>
                                       <Input 
                                         type="number"
-                                        step="0.1"
-                                        placeholder="e.g., 30" 
+                                        step="0.125"
+                                        placeholder="e.g., 12" 
                                         {...field} 
                                         value={field.value ?? ''} 
                                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
@@ -2478,15 +2480,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
                               <FormField
                                 control={form.control}
-                                name="box_height_cm"
+                                name="box_height_in"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Height (cm)</FormLabel>
+                                    <FormLabel>Height (in)</FormLabel>
                                     <FormControl>
                                       <Input 
                                         type="number"
-                                        step="0.1"
-                                        placeholder="e.g., 25" 
+                                        step="0.125"
+                                        placeholder="e.g., 10" 
                                         {...field} 
                                         value={field.value ?? ''} 
                                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
@@ -2498,16 +2500,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             </div>
 
                             {/* Calculated Case Cube Display */}
-                            {form.watch('box_length_cm') && form.watch('box_width_cm') && form.watch('box_height_cm') && (
+                            {form.watch('box_length_in') && form.watch('box_width_in') && form.watch('box_height_in') && (
                               <div className="p-3 bg-muted/50 rounded-lg">
                                 <div className="flex items-center gap-4">
                                   <div>
                                     <span className="text-xs text-muted-foreground">Calculated Case Cube:</span>
                                     <span className="ml-2 font-semibold">
-                                      {((form.watch('box_length_cm')! * form.watch('box_width_cm')! * form.watch('box_height_cm')!) / 1000000).toFixed(6)} m³
+                                      {((form.watch('box_length_in')! * form.watch('box_width_in')! * form.watch('box_height_in')!) / 1728).toFixed(3)} ft³
                                     </span>
                                     <span className="ml-2 text-muted-foreground">
-                                      ({((form.watch('box_length_cm')! * form.watch('box_width_cm')! * form.watch('box_height_cm')!) / 1000000 * 35.3147).toFixed(3)} ft³)
+                                      ({((form.watch('box_length_in')! * form.watch('box_width_in')! * form.watch('box_height_in')!) / 1728 / 35.3147).toFixed(6)} m³)
                                     </span>
                                   </div>
                                 </div>
