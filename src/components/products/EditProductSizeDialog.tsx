@@ -14,7 +14,9 @@ import {
   calculatePalletMetrics,
   getHeightWarning,
   PALLET_TYPES,
+  PalletType,
 } from "@/lib/palletCalculations";
+import { PalletTypeSelector, OptimizationRecommendationsPanel } from "./pallet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +75,20 @@ export function EditProductSizeDialog({
   const [palletSectionOpen, setPalletSectionOpen] = useState(false);
   const [tiCount, setTiCount] = useState<number | null>(null);
   const [hiCount, setHiCount] = useState<number | null>(null);
+  const [palletType, setPalletType] = useState<PalletType>('US_STANDARD');
+  const [customPalletLengthIn, setCustomPalletLengthIn] = useState<number | null>(null);
+  const [customPalletWidthIn, setCustomPalletWidthIn] = useState<number | null>(null);
+
+  // Get effective pallet dimensions based on type
+  const effectivePalletDims = useMemo(() => {
+    if (palletType === 'CUSTOM') {
+      return {
+        lengthIn: customPalletLengthIn || 48,
+        widthIn: customPalletWidthIn || 40,
+      };
+    }
+    return PALLET_TYPES[palletType];
+  }, [palletType, customPalletLengthIn, customPalletWidthIn]);
 
   // Fetch box materials (materials with category = 'Boxes') with dimensions
   const { data: boxMaterials = [] } = useQuery({
@@ -149,10 +165,10 @@ export function EditProductSizeDialog({
       tiCount,
       selectedBoxMaterial.box_length_in,
       selectedBoxMaterial.box_width_in,
-      PALLET_TYPES.US_STANDARD.lengthIn,
-      PALLET_TYPES.US_STANDARD.widthIn
+      effectivePalletDims.lengthIn,
+      effectivePalletDims.widthIn
     );
-  }, [tiCount, selectedBoxMaterial]);
+  }, [tiCount, selectedBoxMaterial, effectivePalletDims]);
 
   // Calculate overhang
   const overhang = useMemo(() => {
@@ -163,10 +179,10 @@ export function EditProductSizeDialog({
       tiCount,
       selectedBoxMaterial.box_length_in,
       selectedBoxMaterial.box_width_in,
-      PALLET_TYPES.US_STANDARD.lengthIn,
-      PALLET_TYPES.US_STANDARD.widthIn
+      effectivePalletDims.lengthIn,
+      effectivePalletDims.widthIn
     );
-  }, [tiCount, selectedBoxMaterial]);
+  }, [tiCount, selectedBoxMaterial, effectivePalletDims]);
 
   const overhangSeverity = useMemo(() => {
     if (!overhang) return 'none';
@@ -184,10 +200,10 @@ export function EditProductSizeDialog({
       selectedBoxMaterial?.box_length_in || 0,
       selectedBoxMaterial?.box_width_in || 0,
       selectedBoxMaterial?.box_height_in || 0,
-      PALLET_TYPES.US_STANDARD.lengthIn,
-      PALLET_TYPES.US_STANDARD.widthIn
+      effectivePalletDims.lengthIn,
+      effectivePalletDims.widthIn
     );
-  }, [tiCount, hiCount, unitsPerCase, calculatedCaseWeightKg, selectedBoxMaterial]);
+  }, [tiCount, hiCount, unitsPerCase, calculatedCaseWeightKg, selectedBoxMaterial, effectivePalletDims]);
 
   // Height warning
   const heightWarning = useMemo(() => {
@@ -228,6 +244,9 @@ export function EditProductSizeDialog({
         setIsActive(size.is_active);
         setTiCount((size as any).ti_count || null);
         setHiCount((size as any).hi_count || null);
+        setPalletType((size as any).pallet_type || 'US_STANDARD');
+        setCustomPalletLengthIn((size as any).custom_pallet_length_in || null);
+        setCustomPalletWidthIn((size as any).custom_pallet_width_in || null);
       } else {
         // Reset to defaults for new size
         setContainerSizeId("");
@@ -245,6 +264,9 @@ export function EditProductSizeDialog({
         setIsActive(true);
         setTiCount(null);
         setHiCount(null);
+        setPalletType('US_STANDARD');
+        setCustomPalletLengthIn(null);
+        setCustomPalletWidthIn(null);
       }
       setWeightSectionOpen(false);
       setUpcSectionOpen(false);
@@ -353,6 +375,9 @@ export function EditProductSizeDialog({
         is_active: isActive,
         ti_count: tiCount,
         hi_count: hiCount,
+        pallet_type: palletType,
+        custom_pallet_length_in: palletType === 'CUSTOM' ? customPalletLengthIn : null,
+        custom_pallet_width_in: palletType === 'CUSTOM' ? customPalletWidthIn : null,
       };
 
       if (isEditing && size) {
@@ -631,9 +656,17 @@ export function EditProductSizeDialog({
               <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
-              <p className="text-xs text-muted-foreground">
-                Configure how cases stack on a standard 48" × 40" pallet (GMA/ISO)
-              </p>
+              {/* Pallet Type Selector */}
+              <PalletTypeSelector
+                palletType={palletType}
+                onPalletTypeChange={setPalletType}
+                customLengthIn={customPalletLengthIn}
+                customWidthIn={customPalletWidthIn}
+                onCustomLengthChange={setCustomPalletLengthIn}
+                onCustomWidthChange={setCustomPalletWidthIn}
+              />
+
+              <Separator />
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -691,6 +724,17 @@ export function EditProductSizeDialog({
                   </p>
                 </div>
               </div>
+
+              {/* Optimization Recommendations */}
+              <OptimizationRecommendationsPanel
+                boxLengthIn={selectedBoxMaterial?.box_length_in}
+                boxWidthIn={selectedBoxMaterial?.box_width_in}
+                palletType={palletType}
+                customPalletLengthIn={customPalletLengthIn}
+                customPalletWidthIn={customPalletWidthIn}
+                currentTi={tiCount}
+                onApplyTi={setTiCount}
+              />
 
               {/* Overhang Warning */}
               {overhang && overhang.hasOverhang && (
@@ -845,6 +889,8 @@ export function EditProductSizeDialog({
                     boxLengthIn={selectedBoxMaterial.box_length_in}
                     boxWidthIn={selectedBoxMaterial.box_width_in}
                     boxHeightIn={selectedBoxMaterial.box_height_in}
+                    palletLengthIn={effectivePalletDims.lengthIn}
+                    palletWidthIn={effectivePalletDims.widthIn}
                     overhang={overhang}
                   />
                 </div>
