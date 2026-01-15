@@ -14,6 +14,9 @@ export interface ProductQARequirement {
   is_critical: boolean;
   test_method: string | null;
   sort_order: number;
+  test_template_id: string | null;
+  frequency: string | null;
+  sample_size: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +32,9 @@ interface ProductQARequirementInput {
   is_critical?: boolean;
   test_method?: string | null;
   sort_order?: number;
+  test_template_id?: string | null;
+  frequency?: string | null;
+  sample_size?: string | null;
 }
 
 export function useProductQARequirements(productId: string | null) {
