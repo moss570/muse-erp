@@ -54,6 +54,8 @@ import RecipeManagement from "./pages/manufacturing/RecipeManagement";
 import ProductCategories from "./pages/settings/ProductCategories";
 import PackagingIndicators from "./pages/settings/PackagingIndicators";
 import ContainerSizes from "./pages/settings/ContainerSizes";
+import QualityTests from "./pages/settings/QualityTests";
+import BatchQATests from "./pages/manufacturing/BatchQATests";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +112,7 @@ const App = () => (
             <Route path="/settings/product-categories" element={<AppLayout><ProductCategories /></AppLayout>} />
             <Route path="/settings/packaging-indicators" element={<AppLayout><PackagingIndicators /></AppLayout>} />
             <Route path="/settings/container-sizes" element={<AppLayout><ContainerSizes /></AppLayout>} />
+            <Route path="/settings/quality-tests" element={<AppLayout><QualityTests /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
@@ -133,6 +136,7 @@ const App = () => (
             <Route path="/manufacturing/base-production" element={<BaseProduction />} />
             <Route path="/manufacturing/finishing" element={<FinishingProduction />} />
             <Route path="/manufacturing/recipes" element={<RecipeManagement />} />
+            <Route path="/manufacturing/qa-tests" element={<BatchQATests />} />
             <Route
               path="/manufacturing/*"
               element={

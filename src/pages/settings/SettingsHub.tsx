@@ -159,7 +159,7 @@ const settingsCategories: SettingCategory[] = [
         description: 'Define quality test parameters and thresholds',
         href: '/settings/quality-tests',
         icon: Scale,
-        status: 'coming-soon',
+        status: 'active',
       },
     ],
   },
