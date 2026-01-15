@@ -23,7 +23,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
   const [skuCheckStatus, setSkuCheckStatus] = useState<'idle' | 'checking' | 'unique' | 'duplicate'>('idle');
   const [isGeneratingSku, setIsGeneratingSku] = useState(false);
 
-  // Fetch units of measure
+  // Fetch units of measure for auto-setting based on category
   const { data: units = [] } = useQuery({
     queryKey: ["units-of-measure-active"],
     queryFn: async () => {
@@ -37,7 +37,6 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
     },
   });
 
-
   // Get categories with SKU prefix for display
   const categoriesWithPrefix = useMemo(() => {
     return activeCategories.map(cat => ({
@@ -49,6 +48,23 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
   const watchedCategoryId = form.watch("product_category_id");
   const watchedName = form.watch("name");
   const watchedSku = form.watch("sku");
+
+  // Auto-set unit_id based on category: BASE = KG, everything else = EACH
+  useEffect(() => {
+    if (!watchedCategoryId || units.length === 0) return;
+    
+    const selectedCategory = activeCategories.find(cat => cat.id === watchedCategoryId);
+    if (!selectedCategory) return;
+    
+    // BASE category uses KG, all finished products (Gelato, Ice Cream, etc.) use EACH
+    const isBaseCategory = selectedCategory.code === 'BASE';
+    const targetUnitCode = isBaseCategory ? 'KG' : 'EACH';
+    const targetUnit = units.find(u => u.code === targetUnitCode);
+    
+    if (targetUnit) {
+      form.setValue("unit_id", targetUnit.id);
+    }
+  }, [watchedCategoryId, units, activeCategories, form]);
 
   // Auto-generate SKU when category or name changes (only for new products)
   const generateSku = useCallback(async () => {
@@ -224,34 +240,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="unit_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Base Unit</FormLabel>
-            <Select
-              value={field.value || "__none__"}
-              onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {units.map((unit) => (
-                  <SelectItem key={unit.id} value={unit.id}>
-                    {unit.name} ({unit.code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Unit is auto-set based on category: BASE = KG, finished products = EACH */}
 
       <div className="grid grid-cols-2 gap-4">
         <FormField
