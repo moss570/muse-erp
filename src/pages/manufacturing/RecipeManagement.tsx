@@ -29,6 +29,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -46,8 +59,11 @@ import {
   Scale,
   Loader2,
   AlertTriangle,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Recipe {
   id: string;
@@ -170,17 +186,28 @@ export default function RecipeManagement() {
   });
 
   // Fetch listed materials for adding items (BOMs use Listed Materials, not Materials directly)
+  // Include count of linked materials
   const { data: listedMaterials = [] } = useQuery({
-    queryKey: ["listed-materials-for-recipe"],
+    queryKey: ["listed-materials-for-recipe-with-links"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("listed_material_names")
-        .select("id, name, code")
+        .select(`
+          id, 
+          name, 
+          code,
+          material_listed_material_links!material_listed_material_links_listed_material_id_fkey(id)
+        `)
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
-      return data;
+      return (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        code: item.code,
+        linkedMaterialsCount: item.material_listed_material_links?.length || 0,
+      }));
     },
   });
 
@@ -805,7 +832,7 @@ function AddItemForm({
   isLoading,
 }: {
   recipeId: string;
-  listedMaterials: { id: string; name: string; code: string }[];
+  listedMaterials: { id: string; name: string; code: string; linkedMaterialsCount: number }[];
   units: { id: string; code: string; name: string }[];
   existingListedMaterialIds: string[];
   onSave: (data: {
@@ -824,10 +851,13 @@ function AddItemForm({
   const [unitId, setUnitId] = useState("");
   const [wastage, setWastage] = useState("0");
   const [notes, setNotes] = useState("");
+  const [open, setOpen] = useState(false);
 
   const availableMaterials = listedMaterials.filter(
     (m) => !existingListedMaterialIds.includes(m.id)
   );
+
+  const selectedMaterial = listedMaterials.find((m) => m.id === listedMaterialId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -844,19 +874,82 @@ function AddItemForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="listed-material">Listed Material</Label>
-        <Select value={listedMaterialId} onValueChange={setListedMaterialId} required>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a listed material" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableMaterials.map((mat) => (
-              <SelectItem key={mat.id} value={mat.id}>
-                {mat.name} ({mat.code})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>Listed Material</Label>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className={cn(
+                "w-full justify-between",
+                selectedMaterial?.linkedMaterialsCount === 0 && "border-amber-500 bg-amber-50"
+              )}
+            >
+              {selectedMaterial ? (
+                <span className="flex items-center gap-2 truncate">
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">{selectedMaterial.code}</code>
+                  {selectedMaterial.name}
+                  {selectedMaterial.linkedMaterialsCount === 0 && (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                      No materials linked
+                    </Badge>
+                  )}
+                </span>
+              ) : (
+                "Select a listed material..."
+              )}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[400px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search by name or code..." />
+              <CommandList>
+                <CommandEmpty>No listed material found.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {availableMaterials.map((mat) => (
+                    <CommandItem
+                      key={mat.id}
+                      value={`${mat.code} ${mat.name}`}
+                      onSelect={() => {
+                        setListedMaterialId(mat.id);
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        mat.linkedMaterialsCount === 0 && "bg-amber-50"
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          listedMaterialId === mat.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                          {mat.code}
+                        </code>
+                        <span className="truncate">{mat.name}</span>
+                        {mat.linkedMaterialsCount === 0 && (
+                          <Badge variant="outline" className="ml-auto bg-amber-100 text-amber-800 border-amber-300 text-xs shrink-0">
+                            No links
+                          </Badge>
+                        )}
+                        {mat.linkedMaterialsCount > 0 && (
+                          <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                            {mat.linkedMaterialsCount} linked
+                          </span>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         {availableMaterials.length === 0 && (
           <p className="text-sm text-amber-600 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
