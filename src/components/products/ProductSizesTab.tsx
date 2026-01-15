@@ -316,8 +316,11 @@ export function ProductSizesTab({ productId, productSku = "", requiresUpc = fals
           {!isAddingSize && (
             <div className="flex gap-2 mt-4">
               <Button
+                type="button"
                 variant="outline"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setEditingSize(null);
                   setEditDialogOpen(true);
                 }}
