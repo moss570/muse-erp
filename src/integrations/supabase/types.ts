@@ -4245,6 +4245,7 @@ export type Database = {
       product_qa_requirements: {
         Row: {
           created_at: string | null
+          frequency: string | null
           id: string
           is_critical: boolean | null
           max_value: number | null
@@ -4252,14 +4253,17 @@ export type Database = {
           parameter_name: string
           product_id: string
           required_at_stage: string | null
+          sample_size: string | null
           sort_order: number | null
           target_value: string | null
           test_method: string | null
+          test_template_id: string | null
           uom: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          frequency?: string | null
           id?: string
           is_critical?: boolean | null
           max_value?: number | null
@@ -4267,14 +4271,17 @@ export type Database = {
           parameter_name: string
           product_id: string
           required_at_stage?: string | null
+          sample_size?: string | null
           sort_order?: number | null
           target_value?: string | null
           test_method?: string | null
+          test_template_id?: string | null
           uom?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          frequency?: string | null
           id?: string
           is_critical?: boolean | null
           max_value?: number | null
@@ -4282,9 +4289,11 @@ export type Database = {
           parameter_name?: string
           product_id?: string
           required_at_stage?: string | null
+          sample_size?: string | null
           sort_order?: number | null
           target_value?: string | null
           test_method?: string | null
+          test_template_id?: string | null
           uom?: string | null
           updated_at?: string | null
         }
@@ -4294,6 +4303,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_qa_requirements_test_template_id_fkey"
+            columns: ["test_template_id"]
+            isOneToOne: false
+            referencedRelation: "quality_test_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -4610,6 +4626,113 @@ export type Database = {
             columns: ["receiving_lot_id"]
             isOneToOne: false
             referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_lot_qa_tests: {
+        Row: {
+          corrective_action: string | null
+          created_at: string | null
+          document_urls: string[] | null
+          id: string
+          max_value: number | null
+          min_value: number | null
+          notes: string | null
+          out_of_spec: boolean | null
+          parameter_type: string
+          passed: boolean | null
+          photo_urls: string[] | null
+          production_lot_id: string
+          target_value: string | null
+          test_name: string
+          test_template_id: string | null
+          test_value_numeric: number | null
+          test_value_text: string | null
+          tested_at: string
+          tested_by: string | null
+          uom: string | null
+          updated_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          corrective_action?: string | null
+          created_at?: string | null
+          document_urls?: string[] | null
+          id?: string
+          max_value?: number | null
+          min_value?: number | null
+          notes?: string | null
+          out_of_spec?: boolean | null
+          parameter_type: string
+          passed?: boolean | null
+          photo_urls?: string[] | null
+          production_lot_id: string
+          target_value?: string | null
+          test_name: string
+          test_template_id?: string | null
+          test_value_numeric?: number | null
+          test_value_text?: string | null
+          tested_at?: string
+          tested_by?: string | null
+          uom?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          corrective_action?: string | null
+          created_at?: string | null
+          document_urls?: string[] | null
+          id?: string
+          max_value?: number | null
+          min_value?: number | null
+          notes?: string | null
+          out_of_spec?: boolean | null
+          parameter_type?: string
+          passed?: boolean | null
+          photo_urls?: string[] | null
+          production_lot_id?: string
+          target_value?: string | null
+          test_name?: string
+          test_template_id?: string | null
+          test_value_numeric?: number | null
+          test_value_text?: string | null
+          tested_at?: string
+          tested_by?: string | null
+          uom?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_lot_qa_tests_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lot_qa_tests_test_template_id_fkey"
+            columns: ["test_template_id"]
+            isOneToOne: false
+            referencedRelation: "quality_test_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lot_qa_tests_tested_by_fkey"
+            columns: ["tested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lot_qa_tests_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -5632,6 +5755,83 @@ export type Database = {
           metric_value?: number | null
         }
         Relationships: []
+      }
+      quality_test_templates: {
+        Row: {
+          applicable_stages: string[] | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_critical: boolean | null
+          max_value: number | null
+          min_value: number | null
+          parameter_type: string
+          required_equipment: string | null
+          sort_order: number | null
+          target_value: string | null
+          test_code: string
+          test_method: string | null
+          test_name: string
+          typical_duration_minutes: number | null
+          uom: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicable_stages?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_critical?: boolean | null
+          max_value?: number | null
+          min_value?: number | null
+          parameter_type: string
+          required_equipment?: string | null
+          sort_order?: number | null
+          target_value?: string | null
+          test_code: string
+          test_method?: string | null
+          test_name: string
+          typical_duration_minutes?: number | null
+          uom?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicable_stages?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_critical?: boolean | null
+          max_value?: number | null
+          min_value?: number | null
+          parameter_type?: string
+          required_equipment?: string | null
+          sort_order?: number | null
+          target_value?: string | null
+          test_code?: string
+          test_method?: string | null
+          test_name?: string
+          typical_duration_minutes?: number | null
+          uom?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_test_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recall_affected_lots: {
         Row: {
