@@ -71,6 +71,12 @@ interface ProductBOMTabProps {
   productName: string;
 }
 
+interface MaterialSupplier {
+  id: string;
+  is_primary: boolean;
+  cost_per_unit: number | null;
+}
+
 interface PrimaryMaterialLink {
   id: string;
   is_primary: boolean;
@@ -80,6 +86,7 @@ interface PrimaryMaterialLink {
     code: string;
     cost_per_base_unit: number | null;
     usage_unit_conversion: number | null;
+    material_suppliers: MaterialSupplier[];
   };
 }
 
@@ -105,6 +112,7 @@ interface RecipeItem {
     label_copy: string | null;
     cost_per_base_unit: number | null;
     usage_unit_conversion: number | null;
+    material_suppliers: MaterialSupplier[];
   } | null;
   unit: { id: string; code: string; name: string } | null;
 }
@@ -220,11 +228,15 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
             id, name, code,
             material_listed_material_links(
               id, is_primary,
-              material:materials(id, name, code, cost_per_base_unit, usage_unit_conversion)
+              material:materials(
+                id, name, code, cost_per_base_unit, usage_unit_conversion,
+                material_suppliers(id, is_primary, cost_per_unit)
+              )
             )
           ),
           material:materials!product_recipe_items_material_id_fkey(
-            id, name, code, label_copy, cost_per_base_unit, usage_unit_conversion
+            id, name, code, label_copy, cost_per_base_unit, usage_unit_conversion,
+            material_suppliers(id, is_primary, cost_per_unit)
           ),
           unit:units_of_measure!product_recipe_items_unit_id_fkey(id, code, name)
         `)
@@ -894,9 +906,35 @@ function BOMTable({
   onEditItem: (item: RecipeItem) => void;
   onDeleteItem: (itemId: string) => void;
 }) {
+  // Get the cost per purchase unit from a material (using supplier cost if base cost not set)
+  const getMaterialCostPerPurchaseUnit = (material: {
+    cost_per_base_unit: number | null;
+    usage_unit_conversion: number | null;
+    material_suppliers: MaterialSupplier[];
+  }): { costPerPurchase: number; usageConversion: number } => {
+    // First try cost_per_base_unit on the material itself
+    if (material.cost_per_base_unit && material.cost_per_base_unit > 0) {
+      return {
+        costPerPurchase: material.cost_per_base_unit,
+        usageConversion: material.usage_unit_conversion || 1
+      };
+    }
+    
+    // Fall back to primary supplier cost
+    const primarySupplier = material.material_suppliers?.find(s => s.is_primary);
+    if (primarySupplier?.cost_per_unit && primarySupplier.cost_per_unit > 0) {
+      return {
+        costPerPurchase: primarySupplier.cost_per_unit,
+        usageConversion: material.usage_unit_conversion || 1
+      };
+    }
+    
+    // No cost found
+    return { costPerPurchase: 0, usageConversion: 1 };
+  };
+
   // Calculate cost per usage unit
-  // For listed materials: get the primary linked material's cost_per_base_unit / usage_unit_conversion
-  // For direct materials: use cost_per_base_unit / usage_unit_conversion
+  // Cost per usage unit = cost per purchase unit / usage_unit_conversion
   const getUnitCost = (item: RecipeItem): number => {
     // If using a listed material, find the primary linked material
     if (item.listed_material?.material_listed_material_links) {
@@ -904,17 +942,15 @@ function BOMTable({
         (link) => link.is_primary
       );
       if (primaryLink?.material) {
-        const costPerBase = primaryLink.material.cost_per_base_unit || 0;
-        const usageConversion = primaryLink.material.usage_unit_conversion || 1;
-        return costPerBase / usageConversion;
+        const { costPerPurchase, usageConversion } = getMaterialCostPerPurchaseUnit(primaryLink.material);
+        return costPerPurchase / usageConversion;
       }
     }
     
     // Fallback to direct material cost
     if (item.material) {
-      const costPerBase = item.material.cost_per_base_unit || 0;
-      const usageConversion = item.material.usage_unit_conversion || 1;
-      return costPerBase / usageConversion;
+      const { costPerPurchase, usageConversion } = getMaterialCostPerPurchaseUnit(item.material);
+      return costPerPurchase / usageConversion;
     }
     
     return 0;
