@@ -42,6 +42,7 @@ import {
   APPLICABLE_STAGES,
   QualityTestTemplate,
 } from '@/hooks/useQualityTests';
+import { useProductCategories } from '@/hooks/useProductCategories';
 
 const formSchema = z.object({
   test_name: z.string().min(1, 'Test name is required'),
@@ -57,6 +58,7 @@ const formSchema = z.object({
   required_equipment: z.string().nullable().optional(),
   typical_duration_minutes: z.number().nullable().optional(),
   applicable_stages: z.array(z.string()).nullable().optional(),
+  default_for_category_ids: z.array(z.string()).nullable().optional(),
   is_critical: z.boolean().default(false),
   is_active: z.boolean().default(true),
   sort_order: z.number().default(0),
@@ -74,6 +76,7 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
   const isEditing = !!template;
   const createTemplate = useCreateQualityTestTemplate();
   const updateTemplate = useUpdateQualityTestTemplate();
+  const { activeCategories } = useProductCategories();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -91,6 +94,7 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
       required_equipment: null,
       typical_duration_minutes: null,
       applicable_stages: [],
+      default_for_category_ids: [],
       is_critical: false,
       is_active: true,
       sort_order: 0,
@@ -125,6 +129,7 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
         required_equipment: template.required_equipment,
         typical_duration_minutes: template.typical_duration_minutes,
         applicable_stages: template.applicable_stages || [],
+        default_for_category_ids: template.default_for_category_ids || [],
         is_critical: template.is_critical,
         is_active: template.is_active,
         sort_order: template.sort_order,
@@ -144,6 +149,7 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
         required_equipment: null,
         typical_duration_minutes: null,
         applicable_stages: [],
+        default_for_category_ids: [],
         is_critical: false,
         is_active: true,
         sort_order: 0,
@@ -181,6 +187,15 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
       form.setValue('applicable_stages', current.filter((s) => s !== stage));
     } else {
       form.setValue('applicable_stages', [...current, stage]);
+    }
+  };
+
+  const handleCategoryDefaultToggle = (categoryId: string) => {
+    const current = form.getValues('default_for_category_ids') || [];
+    if (current.includes(categoryId)) {
+      form.setValue('default_for_category_ids', current.filter((id) => id !== categoryId));
+    } else {
+      form.setValue('default_for_category_ids', [...current, categoryId]);
     }
   };
 
@@ -499,6 +514,36 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
                           <Label htmlFor={`stage-${stage.value}`}>{stage.label}</Label>
                         </div>
                       ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Default for Product Categories */}
+              <FormField
+                control={form.control}
+                name="default_for_category_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Default for Product Categories</FormLabel>
+                    <FormDescription>
+                      When products in these categories are created, this test will be suggested as a default
+                    </FormDescription>
+                    <div className="flex flex-wrap gap-3 mt-2">
+                      {activeCategories.map((cat) => (
+                        <div key={cat.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`cat-${cat.id}`}
+                            checked={(field.value || []).includes(cat.id)}
+                            onCheckedChange={() => handleCategoryDefaultToggle(cat.id)}
+                          />
+                          <Label htmlFor={`cat-${cat.id}`}>{cat.name}</Label>
+                        </div>
+                      ))}
+                      {activeCategories.length === 0 && (
+                        <span className="text-sm text-muted-foreground">No product categories available</span>
+                      )}
                     </div>
                     <FormMessage />
                   </FormItem>

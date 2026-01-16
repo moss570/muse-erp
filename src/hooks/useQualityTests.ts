@@ -17,6 +17,7 @@ export interface QualityTestTemplate {
   required_equipment: string | null;
   typical_duration_minutes: number | null;
   applicable_stages: string[] | null;
+  default_for_category_ids: string[] | null;
   is_critical: boolean;
   is_active: boolean;
   sort_order: number;
@@ -39,6 +40,7 @@ export interface QualityTestTemplateInput {
   required_equipment?: string | null;
   typical_duration_minutes?: number | null;
   applicable_stages?: string[] | null;
+  default_for_category_ids?: string[] | null;
   is_critical?: boolean;
   is_active?: boolean;
   sort_order?: number;

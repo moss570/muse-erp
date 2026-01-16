@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, FlaskConical, AlertTriangle, Loader2, X } from "lucide-react";
+import { Search, FlaskConical, AlertTriangle, Loader2, X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SelectTestTemplatesDialogProps {
@@ -26,6 +26,7 @@ interface SelectTestTemplatesDialogProps {
     frequency: string | null;
   }>) => void;
   existingTemplateIds?: string[];
+  productCategoryId?: string;
 }
 
 export function SelectTestTemplatesDialog({
@@ -33,6 +34,7 @@ export function SelectTestTemplatesDialog({
   onOpenChange,
   onSelect,
   existingTemplateIds = [],
+  productCategoryId,
 }: SelectTestTemplatesDialogProps) {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -44,7 +46,16 @@ export function SelectTestTemplatesDialog({
     (t) => !existingTemplateIds.includes(t.id)
   );
 
-  const filteredTemplates = availableTemplates.filter((t) =>
+  // Sort templates to show category defaults first
+  const sortedTemplates = [...availableTemplates].sort((a, b) => {
+    const aIsDefault = productCategoryId && (a as any).default_for_category_ids?.includes(productCategoryId);
+    const bIsDefault = productCategoryId && (b as any).default_for_category_ids?.includes(productCategoryId);
+    if (aIsDefault && !bIsDefault) return -1;
+    if (!aIsDefault && bIsDefault) return 1;
+    return 0;
+  });
+
+  const filteredTemplates = sortedTemplates.filter((t) =>
     t.test_name.toLowerCase().includes(search.toLowerCase()) ||
     t.test_code.toLowerCase().includes(search.toLowerCase()) ||
     t.category?.toLowerCase().includes(search.toLowerCase())
@@ -147,6 +158,12 @@ export function SelectTestTemplatesDialog({
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
+                      {productCategoryId && (template as any).default_for_category_ids?.includes(productCategoryId) && (
+                        <Badge variant="default" className="gap-1 text-xs bg-amber-500 hover:bg-amber-600">
+                          <Star className="h-3 w-3" />
+                          Recommended
+                        </Badge>
+                      )}
                       <span className="font-medium">{template.test_name}</span>
                       <span className="text-xs text-muted-foreground">
                         ({template.test_code})

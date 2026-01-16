@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useProductQARequirements } from "@/hooks/useProductQARequirements";
-import { useProductCategories, type QAParameter } from "@/hooks/useProductCategories";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import { useProductAttributes, COMMON_ALLERGENS, COMMON_CLAIMS } from "@/hooks/useProductAttributes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Download, Loader2, AlertTriangle, X, FlaskConical } from "lucide-react";
+import { Plus, Trash2, Loader2, AlertTriangle, X, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { SelectTestTemplatesDialog } from "./SelectTestTemplatesDialog";
 
@@ -50,23 +50,6 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
 
   const category = categories.find((c) => c.id === productCategoryId);
-
-  const handleImportFromCategory = async () => {
-    if (!category?.qa_parameters?.length) {
-      toast.error("No QA parameters defined for this category");
-      return;
-    }
-
-    const newRequirements = category.qa_parameters.map((param: QAParameter, index: number) => ({
-      product_id: productId,
-      parameter_name: param.name,
-      uom: param.uom,
-      required_at_stage: param.required_at,
-      sort_order: index,
-    }));
-
-    await bulkCreateRequirements.mutateAsync(newRequirements);
-  };
 
   const handleSelectTemplates = async (templates: Array<{
     test_template_id: string;
@@ -200,12 +183,6 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                 <FlaskConical className="h-4 w-4 mr-2" />
                 Select from Test Library
               </Button>
-              {category && category.qa_parameters?.length > 0 && (
-                <Button type="button" variant="outline" size="sm" onClick={handleImportFromCategory}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Import from {category.name}
-                </Button>
-              )}
             </div>
           </div>
         </CardHeader>
@@ -471,6 +448,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
         existingTemplateIds={requirements
           .filter((r) => r.test_template_id)
           .map((r) => r.test_template_id as string)}
+        productCategoryId={productCategoryId}
       />
     </div>
   );
