@@ -84,12 +84,14 @@ interface RecipeItem {
     id: string;
     name: string;
     code: string;
+    primary_material_cost: number | null;
   } | null;
   material: {
     id: string;
     name: string;
     code: string;
     label_copy: string | null;
+    cost_per_base_unit: number | null;
   } | null;
   unit: { id: string; code: string; name: string } | null;
 }
@@ -205,7 +207,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
             id, name, code
           ),
           material:materials!product_recipe_items_material_id_fkey(
-            id, name, code, label_copy
+            id, name, code, label_copy, cost_per_base_unit
           ),
           unit:units_of_measure!product_recipe_items_unit_id_fkey(id, code, name)
         `)
@@ -865,6 +867,130 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
   );
 }
 
+// BOM Table Component - Displays materials with costs
+function BOMTable({
+  recipeItems,
+  onEditItem,
+  onDeleteItem,
+}: {
+  recipeItems: RecipeItem[];
+  onEditItem: (item: RecipeItem) => void;
+  onDeleteItem: (itemId: string) => void;
+}) {
+  // Calculate unit cost - prefer material cost, otherwise show 0
+  const getUnitCost = (item: RecipeItem): number => {
+    return item.material?.cost_per_base_unit || 0;
+  };
+
+  // Calculate line total (quantity * unit cost)
+  const getLineTotal = (item: RecipeItem): number => {
+    return item.quantity_required * getUnitCost(item);
+  };
+
+  // Calculate total cost of all items
+  const totalCost = recipeItems.reduce((sum, item) => sum + getLineTotal(item), 0);
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-12">#</TableHead>
+          <TableHead>Material</TableHead>
+          <TableHead>Code</TableHead>
+          <TableHead className="text-right">Quantity</TableHead>
+          <TableHead>Unit</TableHead>
+          <TableHead className="text-right">Unit Cost</TableHead>
+          <TableHead className="text-right">Line Total</TableHead>
+          <TableHead className="text-right">Wastage %</TableHead>
+          <TableHead>Notes</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {recipeItems.map((item, index) => {
+          const unitCost = getUnitCost(item);
+          const lineTotal = getLineTotal(item);
+          
+          return (
+            <TableRow key={item.id}>
+              <TableCell className="font-mono text-muted-foreground">
+                {index + 1}
+              </TableCell>
+              <TableCell className="font-medium">
+                {item.listed_material?.name || item.material?.name || (
+                  <span className="text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Unknown
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                  {item.listed_material?.code || item.material?.code || "-"}
+                </code>
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {item.quantity_required.toFixed(4)}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">
+                  {item.unit?.code || "units"}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {unitCost > 0 ? `$${unitCost.toFixed(4)}` : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                {item.wastage_percentage || 0}%
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
+                {item.notes || "—"}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEditItem(item)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDeleteItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+      {/* Total Row */}
+      <tfoot>
+        <TableRow className="bg-muted/50 font-semibold">
+          <TableCell colSpan={6} className="text-right">
+            Total Material Cost:
+          </TableCell>
+          <TableCell className="text-right font-mono text-primary">
+            ${totalCost.toFixed(2)}
+          </TableCell>
+          <TableCell colSpan={3} />
+        </TableRow>
+      </tfoot>
+    </Table>
+  );
+}
+
 // Recipe Content Component - Displays the recipe details and BOM table
 function RecipeContent({
   recipe,
@@ -919,74 +1045,11 @@ function RecipeContent({
           <p className="text-sm">Click "Add Material" to add ingredients to the BOM.</p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Material</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead className="text-right">Wastage %</TableHead>
-              <TableHead>Notes</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recipeItems.map((item, index) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-mono text-muted-foreground">
-                  {index + 1}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {item.listed_material?.name || item.material?.name || (
-                    <span className="text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Unknown
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                    {item.listed_material?.code || item.material?.code || "-"}
-                  </code>
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {item.quantity_required.toFixed(4)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {item.unit?.code || "units"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {item.wastage_percentage || 0}%
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
-                  {item.notes || "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEditItem(item)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDeleteItem(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <BOMTable 
+          recipeItems={recipeItems} 
+          onEditItem={onEditItem} 
+          onDeleteItem={onDeleteItem} 
+        />
       )}
 
       {/* Instructions */}
