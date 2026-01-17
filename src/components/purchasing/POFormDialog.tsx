@@ -42,6 +42,8 @@ import type { Tables } from '@/integrations/supabase/types';
 import { useConcurrentEdit } from '@/hooks/useConcurrentEdit';
 import { EditPresenceIndicator } from '@/components/ui/edit-presence-indicator';
 import { ConflictDialog } from '@/components/ui/conflict-dialog';
+import { getSupplierFieldStyles, getSupplierItemStyles, shouldShowSupplierWarning, getApprovalStatusLabel } from '@/components/ui/supplier-status-indicator';
+import { SupplierWarningDialog } from '@/components/ui/supplier-warning-dialog';
 
 type PurchaseOrder = Tables<'purchase_orders'>;
 
@@ -93,6 +95,8 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
   const queryClient = useQueryClient();
   const [lineItems, setLineItems] = useState<POLineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [supplierWarningOpen, setSupplierWarningOpen] = useState(false);
+  const [warningSupplierName, setWarningSupplierName] = useState<string | undefined>();
 
   // Concurrent editing support
   const {
@@ -149,15 +153,14 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
 
   const selectedSupplierId = form.watch('supplier_id');
 
-  // Fetch suppliers
+  // Fetch suppliers - now fetches ALL active suppliers regardless of approval status
   const { data: suppliers } = useQuery({
-    queryKey: ['suppliers-active'],
+    queryKey: ['suppliers-all-active'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('suppliers')
-        .select('id, name, code, payment_terms')
+        .select('id, name, code, payment_terms, approval_status')
         .eq('is_active', true)
-        .eq('approval_status', 'approved')
         .order('name');
       if (error) throw error;
       return data;
@@ -631,26 +634,50 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
               <FormField
                 control={form.control}
                 name="supplier_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supplier *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select supplier" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {suppliers?.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name} ({s.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedSupplier = suppliers?.find(s => s.id === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>Supplier *</FormLabel>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          const newSupplier = suppliers?.find(s => s.id === value);
+                          if (newSupplier && shouldShowSupplierWarning(newSupplier.approval_status)) {
+                            setWarningSupplierName(newSupplier.name);
+                            setSupplierWarningOpen(true);
+                          }
+                        }} 
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className={getSupplierFieldStyles(selectedSupplier?.approval_status)}>
+                            <SelectValue placeholder="Select supplier" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {suppliers?.map((s) => (
+                            <SelectItem 
+                              key={s.id} 
+                              value={s.id}
+                              className={getSupplierItemStyles(s.approval_status)}
+                            >
+                              <span className="flex items-center gap-2">
+                                {s.name} ({s.code})
+                                {s.approval_status?.toLowerCase() !== 'approved' && (
+                                  <span className="text-xs text-muted-foreground">
+                                    [{getApprovalStatusLabel(s.approval_status)}]
+                                  </span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
@@ -987,6 +1014,12 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       onKeepLocal={handleKeepLocal}
       onAcceptServer={handleAcceptServer}
       serverUpdatedAt={latestServerData?.updated_at as string | undefined}
+    />
+
+    <SupplierWarningDialog
+      open={supplierWarningOpen}
+      onOpenChange={setSupplierWarningOpen}
+      supplierName={warningSupplierName}
     />
     </>
   );

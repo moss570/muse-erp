@@ -49,6 +49,8 @@ import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, Eye
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { getSupplierFieldStyles, getSupplierItemStyles, shouldShowSupplierWarning, getApprovalStatusLabel } from '@/components/ui/supplier-status-indicator';
+import { SupplierWarningDialog } from '@/components/ui/supplier-warning-dialog';
 import {
   ApprovalStatusBadge,
   ApprovalActionsDropdown,
@@ -266,6 +268,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
   const [listedMaterialPopoverOpen, setListedMaterialPopoverOpen] = useState(false);
+  
+  // Supplier warning dialog state
+  const [supplierWarningOpen, setSupplierWarningOpen] = useState(false);
+  const [warningSupplierName, setWarningSupplierName] = useState<string | undefined>();
   
   // Default item photo state
   const [defaultPhotoFile, setDefaultPhotoFile] = useState<File | null>(null);
@@ -734,6 +740,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     const manufacturer = suppliers?.find(s => s.id === manufacturerId);
     if (!manufacturer || manufacturer.supplier_type !== 'manufacturer_distributor') return;
 
+    // Check if manufacturer is approved - show warning if not
+    if (shouldShowSupplierWarning(manufacturer.approval_status)) {
+      toast({
+        title: "Manufacturer Not Approved",
+        description: `"${manufacturer.name}" must be approved before syncing. Current status: ${getApprovalStatusLabel(manufacturer.approval_status)}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Get the base unit and all unit variants
     const baseUnitId = form.getValues('base_unit_id');
     const mainItemNumber = form.getValues('item_number');
@@ -768,6 +784,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     });
 
     setMaterialSuppliers([...filteredSuppliers, ...newSupplierEntries]);
+    
+    toast({
+      title: "Synced from Manufacturer",
+      description: `Added ${newSupplierEntries.length} supplier entry(ies) from ${manufacturer.name}`
+    });
   };
 
   const uploadUnitVariantPhotos = async (materialId: string) => {
@@ -1641,18 +1662,34 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           value={field.value || '__none__'}
                         >
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select manufacturer" />
-                            </SelectTrigger>
+                            {(() => {
+                              const selectedMfr = manufacturers?.find(m => m.name === field.value);
+                              return (
+                                <SelectTrigger className={cn(getSupplierFieldStyles(selectedMfr?.approval_status))}>
+                                  <SelectValue placeholder="Select manufacturer" />
+                                </SelectTrigger>
+                              );
+                            })()}
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="__none__">None</SelectItem>
                             {manufacturers?.map((manufacturer) => (
-                              <SelectItem key={manufacturer.id} value={manufacturer.name}>
-                                {manufacturer.name}
-                                {manufacturer.supplier_type === 'manufacturer_distributor' && (
-                                  <span className="text-muted-foreground ml-1">(Mfr & Dist)</span>
-                                )}
+                              <SelectItem 
+                                key={manufacturer.id} 
+                                value={manufacturer.name}
+                                className={getSupplierItemStyles(manufacturer.approval_status)}
+                              >
+                                <span className="flex items-center gap-2">
+                                  {manufacturer.name}
+                                  {manufacturer.supplier_type === 'manufacturer_distributor' && (
+                                    <span className="text-muted-foreground">(Mfr & Dist)</span>
+                                  )}
+                                  {manufacturer.approval_status?.toLowerCase() !== 'approved' && (
+                                    <span className="text-xs text-muted-foreground">
+                                      [{getApprovalStatusLabel(manufacturer.approval_status)}]
+                                    </span>
+                                  )}
+                                </span>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -3566,21 +3603,45 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       {ms.is_primary && (
                                         <Star className="h-4 w-4 text-amber-500 shrink-0" />
                                       )}
-                                      <Select
-                                        value={ms.supplier_id}
-                                        onValueChange={(value) => updateMaterialSupplier(index, 'supplier_id', value)}
-                                      >
-                                        <SelectTrigger className="flex-1">
-                                          <SelectValue placeholder="Select supplier" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {suppliers?.filter(s => s.approval_status?.toLowerCase() === 'approved').map((supplier) => (
-                                            <SelectItem key={supplier.id} value={supplier.id}>
-                                              {supplier.name} ({supplier.code})
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+                                      {(() => {
+                                        const selectedSupplier = suppliers?.find(s => s.id === ms.supplier_id);
+                                        return (
+                                          <Select
+                                            value={ms.supplier_id}
+                                            onValueChange={(value) => {
+                                              const newSupplier = suppliers?.find(s => s.id === value);
+                                              updateMaterialSupplier(index, 'supplier_id', value);
+                                              // Show warning if supplier is not approved
+                                              if (newSupplier && shouldShowSupplierWarning(newSupplier.approval_status)) {
+                                                setWarningSupplierName(newSupplier.name);
+                                                setSupplierWarningOpen(true);
+                                              }
+                                            }}
+                                          >
+                                            <SelectTrigger className={cn("flex-1", getSupplierFieldStyles(selectedSupplier?.approval_status))}>
+                                              <SelectValue placeholder="Select supplier" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {suppliers?.map((supplier) => (
+                                                <SelectItem 
+                                                  key={supplier.id} 
+                                                  value={supplier.id}
+                                                  className={getSupplierItemStyles(supplier.approval_status)}
+                                                >
+                                                  <span className="flex items-center gap-2">
+                                                    {supplier.name} ({supplier.code})
+                                                    {supplier.approval_status?.toLowerCase() !== 'approved' && (
+                                                      <span className="text-xs text-muted-foreground">
+                                                        [{getApprovalStatusLabel(supplier.approval_status)}]
+                                                      </span>
+                                                    )}
+                                                  </span>
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        );
+                                      })()}
                                       {!ms.is_primary && materialSuppliers.length > 1 && (
                                         <Button
                                           type="button"
@@ -4120,6 +4181,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+      {/* Supplier Warning Dialog */}
+      <SupplierWarningDialog
+        open={supplierWarningOpen}
+        onOpenChange={setSupplierWarningOpen}
+        supplierName={warningSupplierName}
+      />
   </>
   );
 }

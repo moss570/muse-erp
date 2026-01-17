@@ -35,6 +35,9 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getSupplierFieldStyles, getSupplierItemStyles, shouldShowSupplierWarning, getApprovalStatusLabel } from '@/components/ui/supplier-status-indicator';
+import { SupplierWarningDialog } from '@/components/ui/supplier-warning-dialog';
+import { useState } from 'react';
 
 const formSchema = z.object({
   supplier_id: z.string().min(1, 'Carrier/Supplier is required'),
@@ -58,6 +61,8 @@ export function FreightInvoiceFormDialog({
   purchaseOrderId,
 }: FreightInvoiceFormDialogProps) {
   const queryClient = useQueryClient();
+  const [supplierWarningOpen, setSupplierWarningOpen] = useState(false);
+  const [warningSupplierName, setWarningSupplierName] = useState<string | undefined>();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,13 +76,13 @@ export function FreightInvoiceFormDialog({
     },
   });
 
-  // Fetch suppliers (for carrier selection)
+  // Fetch suppliers (for carrier selection) - now fetches all active suppliers with approval_status
   const { data: suppliers } = useQuery({
-    queryKey: ['suppliers-active'],
+    queryKey: ['suppliers-carriers-all'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('suppliers')
-        .select('id, name, code')
+        .select('id, name, code, approval_status')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
@@ -129,6 +134,7 @@ export function FreightInvoiceFormDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -146,26 +152,50 @@ export function FreightInvoiceFormDialog({
             <FormField
               control={form.control}
               name="supplier_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Carrier / Freight Company *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select carrier..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {suppliers?.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name} ({supplier.code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const selectedSupplier = suppliers?.find(s => s.id === field.value);
+                return (
+                  <FormItem>
+                    <FormLabel>Carrier / Freight Company *</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        const newSupplier = suppliers?.find(s => s.id === value);
+                        if (newSupplier && shouldShowSupplierWarning(newSupplier.approval_status)) {
+                          setWarningSupplierName(newSupplier.name);
+                          setSupplierWarningOpen(true);
+                        }
+                      }} 
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className={getSupplierFieldStyles(selectedSupplier?.approval_status)}>
+                          <SelectValue placeholder="Select carrier..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {suppliers?.map((supplier) => (
+                          <SelectItem 
+                            key={supplier.id} 
+                            value={supplier.id}
+                            className={getSupplierItemStyles(supplier.approval_status)}
+                          >
+                            <span className="flex items-center gap-2">
+                              {supplier.name} ({supplier.code})
+                              {supplier.approval_status?.toLowerCase() !== 'approved' && (
+                                <span className="text-xs text-muted-foreground">
+                                  [{getApprovalStatusLabel(supplier.approval_status)}]
+                                </span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
@@ -313,5 +343,12 @@ export function FreightInvoiceFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
+
+    <SupplierWarningDialog
+      open={supplierWarningOpen}
+      onOpenChange={setSupplierWarningOpen}
+      supplierName={warningSupplierName}
+    />
+    </>
   );
 }
